@@ -47,7 +47,7 @@ extension BossConfig.Keys {
     
     // MARK: Behavior
     static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.3)
-    static let enableHaptics = Key<Bool>("enableHaptics", default: true)
+    static let enableHaptics = Key<Bool>("enableHaptics", default: false)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
     static let notchHeightMode = Key<WindowHeightMode>(
         "notchHeightMode",
@@ -75,10 +75,10 @@ extension BossConfig.Keys {
         "sliderUseAlbumArtColor",
         default: SliderColorEnum.white
     )
-    static let playerColorTinting = Key<Bool>("playerColorTinting", default: true)
+    static let playerColorTinting = Key<Bool>("playerColorTinting", default: false)
     
     // MARK: Media playback
-    static let coloredSpectrogram = Key<Bool>("coloredSpectrogram", default: true)
+    static let coloredSpectrogram = Key<Bool>("coloredSpectrogram", default: false)
     static let showShuffleAndRepeat = Key<Bool>("showShuffleAndRepeat", default: false)
     static let musicControlSlots = Key<[MusicControlButton]>(
         "musicControlSlots",

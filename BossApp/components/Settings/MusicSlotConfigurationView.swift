@@ -23,7 +23,7 @@ struct MusicSlotConfigurationView: View {
             // Reset button
             HStack {
                 Spacer()
-                Button("Reset Layout") {
+                Button("Düzeni Sıfırla") {
                     withAnimation {
                         musicControlSlots = MusicControlButton.defaultLayout
                     }
@@ -89,7 +89,7 @@ struct MusicSlotConfigurationView: View {
                     return handleDropOnTrash(providers)
                 }
 
-                Text("Clear slot")
+                Text("Yuvayı temizle")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -102,11 +102,11 @@ struct MusicSlotConfigurationView: View {
     private var slotConfigurationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Layout Preview")
+                Text("Düzen Önizleme")
                     .font(.headline)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("Drag items in the preview to reorder or drop from the palette")
+                Text("Öğeleri sürükleyerek sıralayın veya paletten bırakın")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -115,7 +115,7 @@ struct MusicSlotConfigurationView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Drag a control onto a slot")
+                Text("Bir kontrolü yuvaya sürükleyin")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

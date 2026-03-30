@@ -15,6 +15,7 @@ struct BossAppEntry: App {
 
     init() {
         ClipboardStateViewModel.shared.startMonitoring()
+        ScreenshotStateViewModel.shared.startMonitoring()
     }
 
     var body: some Scene {
@@ -281,6 +282,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         MusicManager.shared.destroy()
         ClipboardStateViewModel.shared.stopMonitoring()
+        ScreenshotStateViewModel.shared.stopMonitoring()
         menuBarController.stop()
         cleanupDragDetectors()
         cleanupWindows()
@@ -495,6 +497,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         ClipboardStateViewModel.shared.startMonitoring()
+        ScreenshotStateViewModel.shared.startMonitoring()
         menuBarController.start()
 
         NotificationCenter.default.addObserver(
@@ -526,7 +529,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             forName: Notification.Name.clipboardExpansionChanged, object: nil, queue: nil
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.syncClipboardExpansion()
+                self?.syncExpandablePanel()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name.screenshotsExpansionChanged, object: nil, queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.syncExpandablePanel()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name.notesExpansionChanged, object: nil, queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.syncExpandablePanel()
             }
         }
 
@@ -702,7 +721,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @MainActor
-    private func syncClipboardExpansion() {
+    private func syncExpandablePanel() {
         if BossConfig[.showOnAllDisplays] {
             for screen in NSScreen.screens {
                 guard let uuid = screen.displayUUID,
@@ -772,6 +791,8 @@ extension Notification.Name {
     static let selectedScreenChanged = Notification.Name("SelectedScreenChanged")
     static let notchHeightChanged = Notification.Name("NotchHeightChanged")
     static let clipboardExpansionChanged = Notification.Name("ClipboardExpansionChanged")
+    static let screenshotsExpansionChanged = Notification.Name("ScreenshotsExpansionChanged")
+    static let notesExpansionChanged = Notification.Name("NotesExpansionChanged")
     static let showOnAllDisplaysChanged = Notification.Name("showOnAllDisplaysChanged")
     static let automaticallySwitchDisplayChanged = Notification.Name("automaticallySwitchDisplayChanged")
     static let expandedDragDetectionChanged = Notification.Name("expandedDragDetectionChanged")

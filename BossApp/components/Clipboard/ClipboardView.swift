@@ -16,6 +16,10 @@ struct ClipboardView: View {
         isSearchExpanded || !clipboard.searchQuery.isEmpty
     }
 
+    private var topControlsInset: CGFloat {
+        40
+    }
+
     var body: some View {
         RoundedRectangle(cornerRadius: 16)
             .stroke(Color.white.opacity(0.12), lineWidth: 1)
@@ -25,7 +29,7 @@ struct ClipboardView: View {
             )
             .overlay {
                 content
-                    .padding(10)
+                    .padding(12)
             }
             .transaction { transaction in
                 transaction.animation = vm.animation
@@ -35,19 +39,8 @@ struct ClipboardView: View {
 
     @ViewBuilder
     private var content: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Clipboard")
-                        .foregroundStyle(.white)
-                        .font(.system(.headline, design: .rounded))
-                        .fontWeight(.semibold)
-
-                    Text(subtitleText)
-                        .foregroundStyle(.secondary)
-                        .font(.system(.caption, design: .rounded))
-                }
-
                 Spacer()
 
                 HStack(spacing: 8) {
@@ -95,24 +88,21 @@ struct ClipboardView: View {
                     }
                 }
             }
+            .padding(.bottom, 8)
 
             if clipboard.isEmpty {
-                VStack(spacing: 12) {
+                VStack(spacing: 10) {
                     Image(systemName: "clipboard")
                         .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(.gray.opacity(0.9))
 
                     Text("Copy text, images, or files")
-                        .foregroundStyle(.white)
-                        .font(.system(.headline, design: .rounded))
-
-                    Text("Anything you copy on your Mac will appear in this tab.")
-                        .foregroundStyle(.secondary)
-                        .font(.system(.subheadline, design: .rounded))
-                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.gray)
+                        .font(.system(.title3, design: .rounded))
+                        .fontWeight(.medium)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.vertical, 28)
+                .padding(.bottom, 24)
             } else if visibleItems.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "magnifyingglass")
@@ -129,7 +119,7 @@ struct ClipboardView: View {
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.vertical, 28)
+                .padding(.bottom, 24)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 8) {
@@ -145,23 +135,12 @@ struct ClipboardView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 2)
                 }
+                .padding(.top, 4)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .scrollIndicators(.never)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-
-    private var subtitleText: String {
-        if clipboard.isEmpty {
-            return "Your recent copies will show up here."
-        }
-
-        if clipboard.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "\(clipboard.items.count) saved item\(clipboard.items.count == 1 ? "" : "s")"
-        }
-
-        return "\(visibleItems.count) match\(visibleItems.count == 1 ? "" : "es")"
     }
 
     private var compactSearchField: some View {

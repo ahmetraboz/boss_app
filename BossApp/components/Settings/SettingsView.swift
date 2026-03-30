@@ -16,25 +16,34 @@ struct SettingsView: View {
         NavigationSplitView {
             List(selection: $selectedTab) {
                 NavigationLink(value: "General") {
-                    Label("General", systemImage: "gear")
+                    Label("Genel", systemImage: "gear")
                 }
                 NavigationLink(value: "Appearance") {
-                    Label("Appearance", systemImage: "eye")
+                    Label("Görünüm", systemImage: "eye")
                 }
                 NavigationLink(value: "Media") {
-                    Label("Media", systemImage: "play.laptopcomputer")
+                    Label("Müzik", systemImage: "music.note")
                 }
 //                NavigationLink(value: "Downloads") {
-//                    Label("Downloads", systemImage: "square.and.arrow.down")
+//                    Label("İndirmeler", systemImage: "square.and.arrow.down")
 //                }
                 NavigationLink(value: "Shelf") {
-                    Label("Shelf", systemImage: "books.vertical")
+                    Label("Raf", systemImage: "books.vertical")
+                }
+                NavigationLink(value: "Notes") {
+                    Label("Notlar", systemImage: "note.text")
+                }
+                NavigationLink(value: "Screenshots") {
+                    Label("Ekran Görüntüleri", systemImage: "photo.on.rectangle")
+                }
+                NavigationLink(value: "Clipboard") {
+                    Label("Pano", systemImage: "clipboard")
                 }
                 // NavigationLink(value: "Extensions") {
-                //     Label("Extensions", systemImage: "puzzlepiece.extension")
+                //     Label("Eklentiler", systemImage: "puzzlepiece.extension")
                 // }
                 NavigationLink(value: "About") {
-                    Label("About", systemImage: "info.circle")
+                    Label("Hakkında", systemImage: "info.circle")
                 }
             }
             .listStyle(SidebarListStyle())
@@ -52,6 +61,12 @@ struct SettingsView: View {
                     Media()
                 case "Shelf":
                     Shelf()
+                case "Notes":
+                    NotesSettings()
+                case "Screenshots":
+                    ScreenshotsSettings()
+                case "Clipboard":
+                    ClipboardSettings()
                 case "Extensions":
                     GeneralSettings()
                 case "About":
@@ -105,18 +120,18 @@ struct GeneralSettings: View {
                     get: { BossConfig[.menubarIcon] },
                     set: { BossConfig[.menubarIcon] = $0 }
                 )) {
-                    Text("Show menu bar icon")
+                    Text("Menü çubuğu simgesini göster")
                 }
                 .tint(.effectiveAccent)
-                BossAutostart.Toggle("Launch at login")
+                BossAutostart.Toggle("Girişte başlat")
                 BossConfig.Toggle(key: .showOnAllDisplays) {
-                    Text("Show on all displays")
+                    Text("Tüm ekranlarda göster")
                 }
                 .onChange(of: showOnAllDisplays) {
                     NotificationCenter.default.post(
                         name: Notification.Name.showOnAllDisplaysChanged, object: nil)
                 }
-                Picker("Preferred display", selection: $coordinator.preferredScreenUUID) {
+                Picker("Tercih edilen ekran", selection: $coordinator.preferredScreenUUID) {
                     ForEach(screens, id: \.uuid) { screen in
                         Text(screen.name).tag(screen.uuid as String?)
                     }
@@ -130,7 +145,7 @@ struct GeneralSettings: View {
                 .disabled(showOnAllDisplays)
                 
                 BossConfig.Toggle(key: .automaticallySwitchDisplay) {
-                    Text("Automatically switch displays")
+                    Text("Ekranları otomatik değiştir")
                 }
                     .onChange(of: automaticallySwitchDisplay) {
                         NotificationCenter.default.post(
@@ -138,20 +153,20 @@ struct GeneralSettings: View {
                     }
                     .disabled(showOnAllDisplays)
             } header: {
-                Text("System features")
+                Text("Sistem Özellikleri")
             }
 
             Section {
                 Picker(
                     selection: $notchHeightMode,
                     label:
-                        Text("Notch height on notch displays")
+                        Text("Çentikli ekranlarda boyut")
                 ) {
-                    Text("Match real notch height")
+                    Text("Gerçek çentik boyutuyla eşleştir")
                         .tag(WindowHeightMode.matchRealNotchSize)
-                    Text("Match menu bar height")
+                    Text("Menü çubuğu yüksekliğiyle eşleştir")
                         .tag(WindowHeightMode.matchMenuBar)
-                    Text("Custom height")
+                    Text("Özel boyut")
                         .tag(WindowHeightMode.custom)
                 }
                 .onChange(of: notchHeightMode) {
@@ -168,19 +183,19 @@ struct GeneralSettings: View {
                 }
                 if notchHeightMode == .custom {
                     Slider(value: $notchHeight, in: 15...45, step: 1) {
-                        Text("Custom notch size - \(notchHeight, specifier: "%.0f")")
+                        Text("Özel boyut değeri - \(notchHeight, specifier: "%.0f")")
                     }
                     .onChange(of: notchHeight) {
                         NotificationCenter.default.post(
                             name: Notification.Name.notchHeightChanged, object: nil)
                     }
                 }
-                Picker("Notch height on non-notch displays", selection: $nonNotchHeightMode) {
-                    Text("Match menubar height")
+                Picker("Çentiksiz ekranlarda boyut", selection: $nonNotchHeightMode) {
+                    Text("Menü çubuğu yüksekliğiyle eşleştir")
                         .tag(WindowHeightMode.matchMenuBar)
-                    Text("Match real notch height")
+                    Text("Gerçek çentik boyutuyla eşleştir")
                         .tag(WindowHeightMode.matchRealNotchSize)
-                    Text("Custom height")
+                    Text("Özel boyut")
                         .tag(WindowHeightMode.custom)
                 }
                 .onChange(of: nonNotchHeightMode) {
@@ -197,7 +212,7 @@ struct GeneralSettings: View {
                 }
                 if nonNotchHeightMode == .custom {
                     Slider(value: $nonNotchHeight, in: 0...40, step: 1) {
-                        Text("Custom notch size - \(nonNotchHeight, specifier: "%.0f")")
+                        Text("Özel boyut değeri - \(nonNotchHeight, specifier: "%.0f")")
                     }
                     .onChange(of: nonNotchHeight) {
                         NotificationCenter.default.post(
@@ -205,47 +220,39 @@ struct GeneralSettings: View {
                     }
                 }
             } header: {
-                Text("Notch sizing")
+                Text("Çentik Boyutlandırma")
             }
 
             NotchBehaviour()
         }
         .toolbar {
-            Button("Quit app") {
+            Button("Uygulamadan Çık") {
                 NSApp.terminate(self)
             }
             .controlSize(.extraLarge)
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("General")
+        .navigationTitle("Genel")
     }
 
     @ViewBuilder
     func NotchBehaviour() -> some View {
         Section {
-            BossConfig.Toggle(key: .openNotchOnHover) {
-                Text("Open notch on hover")
-            }
-            BossConfig.Toggle(key: .enableHaptics) {
-                    Text("Enable haptic feedback")
-            }
-            Toggle("Remember last tab", isOn: $coordinator.openLastTabByDefault)
-            if openNotchOnHover {
-                Slider(value: $minimumHoverDuration, in: 0...1, step: 0.1) {
-                    HStack {
-                        Text("Hover delay")
-                        Spacer()
-                        Text("\(minimumHoverDuration, specifier: "%.1f")s")
-                            .foregroundStyle(.secondary)
-                    }
+            Toggle("Son sekmeyi hatırla", isOn: $coordinator.openLastTabByDefault)
+            Slider(value: $minimumHoverDuration, in: 0...1, step: 0.1) {
+                HStack {
+                    Text("Gecikme süresi")
+                    Spacer()
+                    Text("\(minimumHoverDuration, specifier: "%.1f")sn")
+                        .foregroundStyle(.secondary)
                 }
-                .onChange(of: minimumHoverDuration) {
-                    NotificationCenter.default.post(
-                        name: Notification.Name.notchHeightChanged, object: nil)
-                }
+            }
+            .onChange(of: minimumHoverDuration) {
+                NotificationCenter.default.post(
+                    name: Notification.Name.notchHeightChanged, object: nil)
             }
         } header: {
-            Text("Notch behavior")
+            Text("Çentik Davranışı")
         }
     }
 }
@@ -338,7 +345,7 @@ struct Media: View {
     var body: some View {
         Form {
             Section {
-                Picker("Music Source", selection: $mediaController) {
+                Picker("Müzik Kaynağı", selection: $mediaController) {
                     ForEach(availableMediaControllers) { controller in
                         Text(controller.rawValue).tag(controller)
                     }
@@ -350,17 +357,17 @@ struct Media: View {
                     )
                 }
             } header: {
-                Text("Media Source")
+                Text("Müzik Kaynağı")
             } footer: {
                 if MusicManager.shared.isNowPlayingDeprecated {
                     HStack {
-                        Text("YouTube Music requires the Boss App desktop bridge to be installed.")
+                        Text("YouTube Music oynatımı için Boss App masaüstü köprüsü kurulmalıdır.")
                             .foregroundStyle(.secondary)
                             .font(.caption)
                     }
                 } else {
                     Text(
-                        "'Now Playing' was the only option on previous versions and works with all media apps."
+                        "'Şu An Çalınan' önceki sürümlerdeki tek seçenekti ve tüm uygulamalarla çalışır."
                     )
                     .foregroundStyle(.secondary)
                     .font(.caption)
@@ -369,34 +376,34 @@ struct Media: View {
             
             Section {
                 Toggle(
-                    "Show music live activity",
+                    "Müzik canlı etkinliğini göster",
                     isOn: $coordinator.musicLiveActivityEnabled.animation()
                 )
                 Picker(
                     selection: $hideNotchOption,
-                    label: Text("Full screen behavior")
+                    label: Text("Tam ekran davranışı")
                 ) {
-                    Text("Hide for all apps").tag(HideNotchOption.always)
-                    Text("Hide for media app only").tag(
+                    Text("Tüm uygulamalar için gizle").tag(HideNotchOption.always)
+                    Text("Yalnızca müzik uygulaması için gizle").tag(
                         HideNotchOption.nowPlayingOnly)
-                    Text("Never hide").tag(HideNotchOption.never)
+                    Text("Asla gizleme").tag(HideNotchOption.never)
                 }
             } header: {
-                Text("Media playback live activity")
+                Text("Müzik Canlı Etkinliği")
             }
             
             Section {
                 MusicSlotConfigurationView()
             } header: {
-                Text("Media controls")
+                Text("Müzik Kontrolleri")
             }  footer: {
-                Text("Customize which controls appear in the music player. Volume expands when active.")
+                Text("Müzik çalarda hangi kontrollerin görüneceğini özelleştirin.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Media")
+        .navigationTitle("Müzik")
     }
 
     // Only show controller options that are available on this macOS version
@@ -417,19 +424,13 @@ struct About: View {
             Form {
                 Section {
                     HStack {
-                        Text("Release name")
-                        Spacer()
-                        Text(BossConfig[.releaseName])
-                            .foregroundStyle(.secondary)
-                    }
-                    HStack {
-                        Text("Version")
+                        Text("Versiyon")
                         Spacer()
                         if showBuildNumber {
                             Text("(\(Bundle.main.buildVersionNumber ?? ""))")
                                 .foregroundStyle(.secondary)
                         }
-                        Text(Bundle.main.releaseVersionNumber ?? "unkown")
+                        Text("1.00")
                             .foregroundStyle(.secondary)
                     }
                     .onTapGesture {
@@ -438,15 +439,15 @@ struct About: View {
                         }
                     }
                 } header: {
-                    Text("Version info")
+                    Text("Sürüm Bilgisi")
                 }
 
-                Text("This copy is configured for personal Boss App use.")
+                Text("Bu sürüm kişisel Boss App kullanımı için yapılandırılmıştır.")
                     .foregroundStyle(.secondary)
             }
             VStack(spacing: 0) {
                 Divider()
-                Text("Customized locally as Boss App")
+                Text("Boss App olarak yerel ortamda özelleştirildi \n Geliştiren: Ahmet Boz")
                     .foregroundStyle(.secondary)
                     .padding(.top, 5)
                     .padding(.bottom, 7)
@@ -461,7 +462,7 @@ struct About: View {
             //            }
             //            .controlSize(.extraLarge)
         }
-        .navigationTitle("About")
+        .navigationTitle("Hakkında")
     }
 }
 
@@ -472,13 +473,13 @@ struct Shelf: View {
         Form {
             Section {
                 BossConfig.Toggle(key: .shelfEnabled) {
-                    Text("Enable shelf")
+                    Text("Rafı etkinleştir")
                 }
                 BossConfig.Toggle(key: .openShelfByDefault) {
-                    Text("Open shelf by default if items are present")
+                    Text("Öğeler varsa rafı varsayılan olarak aç")
                 }
                 BossConfig.Toggle(key: .expandedDragDetection) {
-                    Text("Expanded drag detection area")
+                    Text("Genişletilmiş sürükleme algılama alanı")
                 }
                 .onChange(of: expandedDragDetection) {
                     NotificationCenter.default.post(
@@ -487,20 +488,20 @@ struct Shelf: View {
                     )
                 }
                 BossConfig.Toggle(key: .copyOnDrag) {
-                    Text("Copy items on drag")
+                    Text("Sürüklerken öğeleri kopyala")
                 }
                 BossConfig.Toggle(key: .autoRemoveShelfItems) {
-                    Text("Remove from shelf after dragging")
+                    Text("Sürükledikten sonra raftan kaldır")
                 }
 
             } header: {
                 HStack {
-                    Text("General")
+                    Text("Genel")
                 }
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Shelf")
+        .navigationTitle("Raf")
     }
 }
 
@@ -645,57 +646,41 @@ struct Shelf: View {
 struct Appearance: View {
     @ObservedObject var coordinator = BossViewCoordinator.shared
     @Default(.mirrorShape) var mirrorShape
-    @Default(.sliderColor) var sliderColor
+
 
     var body: some View {
         Form {
             Section {
-                Toggle("Always show tabs", isOn: $coordinator.alwaysShowTabs)
+                Toggle("Sekmeleri her zaman göster", isOn: $coordinator.alwaysShowTabs)
                 BossConfig.Toggle(key: .settingsIconInNotch) {
-                    Text("Show settings icon in notch")
+                    Text("Ayarlar simgesini çentikte göster")
                 }
 
             } header: {
-                Text("General")
+                Text("Genel Görünüm")
             }
 
-            Section {
-                BossConfig.Toggle(key: .coloredSpectrogram) {
-                    Text("Colored spectrogram")
-                }
-                BossConfig
-                    .Toggle("Player tinting", key: .playerColorTinting)
-                BossConfig.Toggle(key: .lightingEffect) {
-                    Text("Enable blur effect behind album art")
-                }
-                Picker("Slider color", selection: $sliderColor) {
-                    ForEach(SliderColorEnum.allCases, id: \.self) { option in
-                        Text(option.rawValue)
-                    }
-                }
-            } header: {
-                Text("Media")
-            }
+
 
             Section {
                 BossConfig.Toggle(key: .showMirror) {
-                    Text("Enable mirror mode")
+                    Text("Ayna modunu etkinleştir")
                 }
                     .disabled(!checkVideoInput())
-                Picker("Mirror shape", selection: $mirrorShape) {
-                    Text("Circle")
+                Picker("Ayna Şekli", selection: $mirrorShape) {
+                    Text("Daire")
                         .tag(MirrorShapeEnum.circle)
-                    Text("Square")
+                    Text("Kare")
                         .tag(MirrorShapeEnum.rectangle)
                 }
             } header: {
                 HStack {
-                    Text("Additional features")
+                    Text("Ek Görsel Özellikler")
                 }
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Appearance")
+        .navigationTitle("Görünüm")
     }
 
     func checkVideoInput() -> Bool {
@@ -708,7 +693,7 @@ struct Appearance: View {
 }
 
 func proFeatureBadge() -> some View {
-    Text("Upgrade to Pro")
+    Text("Pro'ya Yükselt")
         .foregroundStyle(Color(red: 0.545, green: 0.196, blue: 0.98))
         .font(.footnote.bold())
         .padding(.vertical, 3)
@@ -719,13 +704,58 @@ func proFeatureBadge() -> some View {
 }
 
 func comingSoonTag() -> some View {
-    Text("Coming soon")
+    Text("Yakında")
         .foregroundStyle(.secondary)
         .font(.footnote.bold())
         .padding(.vertical, 3)
         .padding(.horizontal, 6)
         .background(Color(nsColor: .secondarySystemFill))
         .clipShape(.capsule)
+}
+
+struct NotesSettings: View {
+    var body: some View {
+        Form {
+            Section {
+                Text("Notlar özellikleri için ayarlar buraya eklenecek.")
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Genel")
+            }
+        }
+        .accentColor(.effectiveAccent)
+        .navigationTitle("Notlar")
+    }
+}
+
+struct ScreenshotsSettings: View {
+    var body: some View {
+        Form {
+            Section {
+                Text("Ekran görüntüleri özellikleri için ayarlar buraya eklenecek.")
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Genel")
+            }
+        }
+        .accentColor(.effectiveAccent)
+        .navigationTitle("Ekran Görüntüleri")
+    }
+}
+
+struct ClipboardSettings: View {
+    var body: some View {
+        Form {
+            Section {
+                Text("Pano özellikleri için ayarlar buraya eklenecek.")
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Genel")
+            }
+        }
+        .accentColor(.effectiveAccent)
+        .navigationTitle("Pano")
+    }
 }
 
 func customBadge(text: String) -> some View {

@@ -27,6 +27,8 @@ public enum NotchViews {
     case home
     case shelf
     case clipboard
+    case screenshots
+    case notes
 }
 
 enum SettingsEnum {
@@ -63,7 +65,7 @@ enum WindowHeightMode: String, BossConfig.Serializable {
 }
 
 enum SliderColorEnum: String, CaseIterable, BossConfig.Serializable {
-    case white = "White"
-    case albumArt = "Match album art"
-    case accent = "Accent color"
+    case white = "Beyaz"
+    case albumArt = "Albüm kapağıyla eşleştir"
+    case accent = "Vurgu rengi"
 }

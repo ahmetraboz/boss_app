@@ -126,6 +126,14 @@ class BossViewModel: NSObject, ObservableObject {
             return getExpandedClipboardNotchSize(screenUUID: screenUUID)
         }
 
+        if coordinator.currentView == .screenshots && coordinator.isScreenshotsExpanded {
+            return getExpandedClipboardNotchSize(screenUUID: screenUUID)
+        }
+
+        if coordinator.currentView == .notes && coordinator.isNotesExpanded {
+            return getExpandedClipboardNotchSize(screenUUID: screenUUID)
+        }
+
         return openNotchSize
     }
 

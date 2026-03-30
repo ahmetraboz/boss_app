@@ -17,9 +17,17 @@ class BossViewCoordinator: ObservableObject {
             if currentView != .clipboard && isClipboardExpanded {
                 setClipboardExpanded(false)
             }
+            if currentView != .screenshots && isScreenshotsExpanded {
+                setScreenshotsExpanded(false)
+            }
+            if currentView != .notes && isNotesExpanded {
+                setNotesExpanded(false)
+            }
         }
     }
     @Published private(set) var isClipboardExpanded: Bool = false
+    @Published private(set) var isScreenshotsExpanded: Bool = false
+    @Published private(set) var isNotesExpanded: Bool = false
 
     @AppStorage("firstLaunch") var firstLaunch: Bool = true
     @AppStorage("showWhatsNew") var showWhatsNew: Bool = true
@@ -93,5 +101,27 @@ class BossViewCoordinator: ObservableObject {
 
         isClipboardExpanded = expanded
         NotificationCenter.default.post(name: .clipboardExpansionChanged, object: nil)
+    }
+
+    func toggleScreenshotsExpanded() {
+        setScreenshotsExpanded(!isScreenshotsExpanded)
+    }
+
+    func setScreenshotsExpanded(_ expanded: Bool) {
+        guard isScreenshotsExpanded != expanded else { return }
+
+        isScreenshotsExpanded = expanded
+        NotificationCenter.default.post(name: .screenshotsExpansionChanged, object: nil)
+    }
+
+    func toggleNotesExpanded() {
+        setNotesExpanded(!isNotesExpanded)
+    }
+
+    func setNotesExpanded(_ expanded: Bool) {
+        guard isNotesExpanded != expanded else { return }
+
+        isNotesExpanded = expanded
+        NotificationCenter.default.post(name: .notesExpansionChanged, object: nil)
     }
 }

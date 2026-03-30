@@ -46,25 +46,25 @@ enum MusicControlButton: String, CaseIterable, Identifiable, Codable, BossConfig
     var label: String {
         switch self {
         case .shuffle:
-            return "Shuffle"
+            return "Karıştır"
         case .previous:
-            return "Previous"
+            return "Önceki"
         case .playPause:
-            return "Play/Pause"
+            return "Oynat/Duraklat"
         case .next:
-            return "Next"
+            return "Sonraki"
         case .repeatMode:
-            return "Repeat"
+            return "Tekrarla"
         case .volume:
-            return "Volume"
+            return "Ses"
         case .favorite:
-            return "Favorite"
+            return "Favori"
         case .goBackward:
-            return "Backward 15s"
+            return "Geri 15s"
         case .goForward:
-            return "Forward 15s"
+            return "İleri 15s"
         case .none:
-            return "Empty slot"
+            return "Boş yuva"
         }
     }
 

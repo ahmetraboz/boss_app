@@ -12,23 +12,30 @@ struct BossHeader: View {
     @ObservedObject var coordinator = BossViewCoordinator.shared
     @StateObject var tvm = ShelfStateViewModel.shared
     @StateObject private var clipboard = ClipboardStateViewModel.shared
+    @StateObject private var screenshots = ScreenshotStateViewModel.shared
+    @Namespace private var tabAnimation
 
     private var shouldShowTabs: Bool {
         coordinator.alwaysShowTabs
             || !tvm.isEmpty
             || !clipboard.isEmpty
+            || !screenshots.isEmpty
+    }
+
+    private var tabSections: (left: [TabModel], right: [TabModel]) {
+        TabSelectionView.splitTabs()
     }
 
     var body: some View {
         HStack(spacing: 0) {
             HStack {
                 if shouldShowTabs {
-                    TabSelectionView()
+                    TabSelectionView(tabs: tabSections.left, animation: tabAnimation)
                 } else if vm.notchState == .open {
                     EmptyView()
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .trailing)
             .opacity(vm.notchState == .closed ? 0 : 1)
             .blur(radius: vm.notchState == .closed ? 20 : 0)
             .zIndex(2)
@@ -42,7 +49,11 @@ struct BossHeader: View {
                     }
             }
 
-            HStack(spacing: 4) {
+            HStack(spacing: 8) {
+                if shouldShowTabs {
+                    TabSelectionView(tabs: tabSections.right, animation: tabAnimation)
+                }
+
                 if vm.notchState == .open {
                     if BossConfig[.showMirror] {
                         Button(action: {
@@ -79,7 +90,7 @@ struct BossHeader: View {
                 }
             }
             .font(.system(.headline, design: .rounded))
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .opacity(vm.notchState == .closed ? 0 : 1)
             .blur(radius: vm.notchState == .closed ? 20 : 0)
             .zIndex(2)
