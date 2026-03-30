@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "glowdot.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "boss",
+    "version" : 1
+  }
+}
