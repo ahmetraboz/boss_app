@@ -4,39 +4,252 @@
 //
 //
 
+import AppKit
 import BossConfig
+import Combine
 import SwiftUI
 
 @main
 struct BossAppEntry: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @Default(.menubarIcon) var showMenuBarIcon
-    @Environment(\.openWindow) var openWindow
 
     init() {
         ClipboardStateViewModel.shared.startMonitoring()
     }
 
     var body: some Scene {
-        MenuBarExtra("🐻", isInserted: $showMenuBarIcon) {
-            Button("Settings") {
-                SettingsWindowController.shared.showWindow()
+        Settings {
+            EmptyView()
+        }
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings") {
+                    SettingsWindowController.shared.showWindow()
+                }
+                .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
             }
-            .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
-            Divider()
-            Button("Restart Boss App") {
-                ApplicationRelauncher.restart()
-            }
-            Button("Quit", role: .destructive) {
-                NSApplication.shared.terminate(self)
-            }
-            .keyboardShortcut(KeyEquivalent("Q"), modifiers: .command)
         }
     }
 }
 
+@MainActor
+final class BossMenuBarController: NSObject {
+    private enum Layout {
+        static let separatorLength: CGFloat = 12
+        static let minimumCollapsedLength: CGFloat = 500
+        static let maximumCollapsedLength: CGFloat = 4000
+        static let collapsedExtraPadding: CGFloat = 200
+    }
+
+    private var toggleItem: NSStatusItem?
+    private var separatorItem: NSStatusItem?
+    private var menuBarIconCancellable: AnyCancellable?
+    private var screenObserver: NSObjectProtocol?
+    private var isToggleLocked = false
+
+    private var collapsedLength: CGFloat {
+        let screenWidth = NSScreen.main?.visibleFrame.width ?? 1728
+        return max(
+            Layout.minimumCollapsedLength,
+            min(screenWidth + Layout.collapsedExtraPadding, Layout.maximumCollapsedLength)
+        )
+    }
+
+    private var isCollapsed: Bool {
+        guard let separatorItem else { return false }
+        return separatorItem.length >= collapsedLength - 1
+    }
+
+    func start() {
+        menuBarIconCancellable = BossConfig.publisher(.menubarIcon)
+            .map(\.newValue)
+            .removeDuplicates()
+            .sink { [weak self] isVisible in
+                guard let self else { return }
+                Task { @MainActor in
+                    self.setVisible(isVisible)
+                }
+            }
+
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.refreshCollapsedLayoutIfNeeded()
+            }
+        }
+    }
+
+    func stop() {
+        menuBarIconCancellable?.cancel()
+        menuBarIconCancellable = nil
+
+        if let screenObserver {
+            NotificationCenter.default.removeObserver(screenObserver)
+            self.screenObserver = nil
+        }
+
+        removeItems()
+    }
+
+    private func setVisible(_ visible: Bool) {
+        if visible {
+            createItemsIfNeeded()
+        } else {
+            removeItems()
+        }
+    }
+
+    private func createItemsIfNeeded() {
+        guard toggleItem == nil, separatorItem == nil else { return }
+
+        let toggleItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = toggleItem.button {
+            button.title = "🐻"
+            button.target = self
+            button.action = #selector(handleToggleItemPress(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        }
+        toggleItem.autosaveName = "bossapp_bear_toggle"
+        self.toggleItem = toggleItem
+
+        let separatorItem = NSStatusBar.system.statusItem(withLength: Layout.separatorLength)
+        if let button = separatorItem.button {
+            button.title = "│"
+            button.font = NSFont.systemFont(ofSize: 14, weight: .regular)
+            button.appearsDisabled = true
+            button.isEnabled = false
+        }
+        separatorItem.autosaveName = "bossapp_bear_separator"
+        self.separatorItem = separatorItem
+    }
+
+    private func removeItems() {
+        if let toggleItem {
+            NSStatusBar.system.removeStatusItem(toggleItem)
+            self.toggleItem = nil
+        }
+
+        if let separatorItem {
+            NSStatusBar.system.removeStatusItem(separatorItem)
+            self.separatorItem = nil
+        }
+    }
+
+    private func refreshCollapsedLayoutIfNeeded() {
+        guard isCollapsed, let separatorItem else { return }
+        separatorItem.length = collapsedLength
+    }
+
+    private var isSeparatorPositionValid: Bool {
+        guard
+            let toggleX = toggleItem?.button?.window?.frame.origin.x,
+            let separatorX = separatorItem?.button?.window?.frame.origin.x
+        else {
+            return true
+        }
+
+        if NSApplication.shared.userInterfaceLayoutDirection == .leftToRight {
+            return toggleX >= separatorX
+        }
+
+        return toggleX <= separatorX
+    }
+
+    @objc
+    private func handleToggleItemPress(_ sender: NSStatusBarButton) {
+        guard let event = NSApp.currentEvent else {
+            toggleCollapse()
+            return
+        }
+
+        let isRightClick = event.type == .rightMouseUp
+            || (event.type == .leftMouseUp && event.modifierFlags.contains(.control))
+
+        if isRightClick {
+            showContextMenu()
+            return
+        }
+
+        toggleCollapse()
+    }
+
+    private func toggleCollapse() {
+        guard !isToggleLocked else { return }
+        guard isSeparatorPositionValid else {
+            NSSound.beep()
+            return
+        }
+
+        isToggleLocked = true
+
+        if isCollapsed {
+            separatorItem?.length = Layout.separatorLength
+        } else {
+            separatorItem?.length = collapsedLength
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            self?.isToggleLocked = false
+        }
+    }
+
+    private func showContextMenu() {
+        guard let toggleItem else { return }
+
+        let menu = NSMenu()
+
+        let settingsItem = NSMenuItem(
+            title: "Settings",
+            action: #selector(openSettings),
+            keyEquivalent: ","
+        )
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
+        menu.addItem(.separator())
+
+        let restartItem = NSMenuItem(
+            title: "Restart Boss App",
+            action: #selector(restartApplication),
+            keyEquivalent: ""
+        )
+        restartItem.target = self
+        menu.addItem(restartItem)
+
+        let quitItem = NSMenuItem(
+            title: "Quit",
+            action: #selector(quitApplication),
+            keyEquivalent: "q"
+        )
+        quitItem.target = self
+        menu.addItem(quitItem)
+
+        toggleItem.menu = menu
+        toggleItem.button?.performClick(nil)
+        toggleItem.menu = nil
+    }
+
+    @objc
+    private func openSettings() {
+        SettingsWindowController.shared.showWindow()
+    }
+
+    @objc
+    private func restartApplication() {
+        ApplicationRelauncher.restart()
+    }
+
+    @objc
+    private func quitApplication() {
+        NSApplication.shared.terminate(nil)
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var statusItem: NSStatusItem?
+    let menuBarController = BossMenuBarController()
     var windows: [String: NSWindow] = [:] // UUID -> NSWindow
     var viewModels: [String: BossViewModel] = [:] // UUID -> BossViewModel
     var window: NSWindow?
@@ -68,6 +281,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         MusicManager.shared.destroy()
         ClipboardStateViewModel.shared.stopMonitoring()
+        menuBarController.stop()
         cleanupDragDetectors()
         cleanupWindows()
     }
@@ -281,6 +495,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         ClipboardStateViewModel.shared.startMonitoring()
+        menuBarController.start()
 
         NotificationCenter.default.addObserver(
             self,
@@ -512,22 +727,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             positionWindow(window, on: screen, with: vm, animate: true)
         }
-    }
-
-    @objc func togglePopover(_ sender: Any?) {
-        if window?.isVisible == true {
-            window?.orderOut(nil)
-        } else {
-            window?.orderFrontRegardless()
-        }
-    }
-
-    @objc func showMenu() {
-        statusItem?.menu?.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
-    }
-
-    @objc func quitAction() {
-        NSApplication.shared.terminate(self)
     }
 
     private func showOnboardingWindow(step: OnboardingStep = .welcome) {
