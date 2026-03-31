@@ -29,7 +29,9 @@ struct ClipboardView: View {
             )
             .overlay {
                 content
-                    .padding(12)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 16)
+                    .padding(.bottom, 12)
             }
             .transaction { transaction in
                 transaction.animation = vm.animation

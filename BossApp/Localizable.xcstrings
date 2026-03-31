@@ -1,5 +1,378 @@
 {
-  "sourceLanguage": "en",
-  "strings": {},
-  "version": "1.0"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "'Şu An Çalınan' önceki sürümlerdeki tek seçenekti ve tüm uygulamalarla çalışır." : {
+
+    },
+    "(%@)" : {
+
+    },
+    "%.1fsn" : {
+
+    },
+    "%@" : {
+
+    },
+    "%lld" : {
+
+    },
+    "%lld chars" : {
+
+    },
+    "%lld%%" : {
+
+    },
+    "•" : {
+
+    },
+    "• %lldx" : {
+
+    },
+    "• Bug fixes" : {
+
+    },
+    "• Improved performance" : {
+
+    },
+    "• New feature 1" : {
+
+    },
+    "1.00" : {
+
+    },
+    "Access Denied" : {
+
+    },
+    "All-day" : {
+
+    },
+    "Allow Access" : {
+
+    },
+    "Asla gizleme" : {
+
+    },
+    "Ayarlar simgesini çentikte göster" : {
+
+    },
+    "Ayna modunu etkinleştir" : {
+
+    },
+    "Ayna Şekli" : {
+
+    },
+    "Bir kontrolü yuvaya sürükleyin" : {
+
+    },
+    "Boss App" : {
+
+    },
+    "Boss App olarak yerel ortamda özelleştirildi \n Geliştiren: Ahmet Boz" : {
+
+    },
+    "Bu sürüm kişisel Boss App kullanımı için yapılandırılmıştır." : {
+
+    },
+    "Büyüt" : {
+
+    },
+    "Çentik Boyutlandırma" : {
+
+    },
+    "Çentik Davranışı" : {
+
+    },
+    "Çentikli ekranlarda boyut" : {
+
+    },
+    "Çentiksiz ekranlarda boyut" : {
+
+    },
+    "Choose a Music Source" : {
+
+    },
+    "Clear" : {
+
+    },
+    "Close" : {
+
+    },
+    "Collapse clipboard" : {
+
+    },
+    "Collapse screenshots" : {
+
+    },
+    "Continue" : {
+
+    },
+    "Copy text, images, or files" : {
+
+    },
+    "Customize in Settings" : {
+
+    },
+    "Daire" : {
+
+    },
+    "Delete note" : {
+
+    },
+    "Download" : {
+
+    },
+    "Drop files here" : {
+
+    },
+    "Düzen Önizleme" : {
+
+    },
+    "Düzeni Sıfırla" : {
+
+    },
+    "Edit layout" : {
+
+    },
+    "Ek Görsel Özellikler" : {
+
+    },
+    "Ekran Görüntüleri" : {
+
+    },
+    "Ekran görüntüleri özellikleri için ayarlar buraya eklenecek." : {
+
+    },
+    "Ekranları otomatik değiştir" : {
+
+    },
+    "Enjoy your free time!" : {
+
+    },
+    "Expand clipboard" : {
+
+    },
+    "Expand screenshots" : {
+
+    },
+    "Finish" : {
+
+    },
+    "Gecikme süresi" : {
+
+    },
+    "Genel" : {
+
+    },
+    "Genel Görünüm" : {
+
+    },
+    "Genişletilmiş sürükleme algılama alanı" : {
+
+    },
+    "Gerçek çentik boyutuyla eşleştir" : {
+
+    },
+    "Get started" : {
+
+    },
+    "Görünüm" : {
+
+    },
+    "Got it!" : {
+
+    },
+    "Hakkında" : {
+
+    },
+    "In progress" : {
+
+    },
+    "Kare" : {
+
+    },
+    "Küçült" : {
+
+    },
+    "Mark as complete" : {
+
+    },
+    "Mark as incomplete" : {
+
+    },
+    "Menü çubuğu simgesini göster" : {
+
+    },
+    "Menü çubuğu yüksekliğiyle eşleştir" : {
+
+    },
+    "Mirror" : {
+
+    },
+    "Müzik" : {
+
+    },
+    "Müzik çalarda hangi kontrollerin görüneceğini özelleştirin." : {
+
+    },
+    "Müzik Canlı Etkinliği" : {
+
+    },
+    "Müzik canlı etkinliğini göster" : {
+
+    },
+    "Müzik Kaynağı" : {
+
+    },
+    "Müzik Kontrolleri" : {
+
+    },
+    "New note" : {
+
+    },
+    "No events" : {
+
+    },
+    "No events today" : {
+
+    },
+    "No matches" : {
+
+    },
+    "No notes yet" : {
+
+    },
+    "Not Now" : {
+
+    },
+    "Notlar" : {
+
+    },
+    "Notlar özellikleri için ayarlar buraya eklenecek." : {
+
+    },
+    "Öğeler varsa rafı varsayılan olarak aç" : {
+
+    },
+    "Öğeleri sürükleyerek sıralayın veya paletten bırakın" : {
+
+    },
+    "Özel boyut" : {
+
+    },
+    "Özel boyut değeri - %.0f" : {
+
+    },
+    "Pano" : {
+
+    },
+    "Pano özellikleri için ayarlar buraya eklenecek." : {
+
+    },
+    "Pro'ya Yükselt" : {
+
+    },
+    "Raf" : {
+
+    },
+    "Rafı etkinleştir" : {
+
+    },
+    "Requires the Boss App desktop bridge." : {
+
+    },
+    "Sabitle" : {
+
+    },
+    "Sabitlemeyi Kaldır" : {
+
+    },
+    "Screenshots" : {
+
+    },
+    "Search" : {
+
+    },
+    "Sekmeleri her zaman göster" : {
+
+    },
+    "Select the music source you want to use. You can change this later in the app settings." : {
+
+    },
+    "Settings" : {
+
+    },
+    "Sil" : {
+
+    },
+    "Sistem Özellikleri" : {
+
+    },
+    "Son sekmeyi hatırla" : {
+
+    },
+    "Sürükledikten sonra raftan kaldır" : {
+
+    },
+    "Sürüklerken öğeleri kopyala" : {
+
+    },
+    "Sürüm Bilgisi" : {
+
+    },
+    "Tam ekran davranışı" : {
+
+    },
+    "Tercih edilen ekran" : {
+
+    },
+    "Title" : {
+
+    },
+    "Try a different word or clear the search field." : {
+
+    },
+    "Tüm ekranlarda göster" : {
+
+    },
+    "Tüm uygulamalar için gizle" : {
+
+    },
+    "Uygulamadan Çık" : {
+
+    },
+    "Versiyon" : {
+
+    },
+    "Welcome" : {
+
+    },
+    "What's New" : {
+
+    },
+    "Write something..." : {
+
+    },
+    "Yakında" : {
+
+    },
+    "Yalnızca müzik uygulaması için gizle" : {
+
+    },
+    "You can now enjoy the app. If you want to tweak things further, you can always visit the settings." : {
+
+    },
+    "You're All Set!" : {
+
+    },
+    "YouTube Music oynatımı için Boss App masaüstü köprüsü kurulmalıdır." : {
+
+    },
+    "Yuvayı temizle" : {
+
+    }
+  },
+  "version" : "1.0"
 }

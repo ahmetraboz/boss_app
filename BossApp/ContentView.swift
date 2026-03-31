@@ -162,7 +162,7 @@ struct ContentView: View {
 
     @ViewBuilder
     func NotchLayout() -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 4) {
             VStack(alignment: .leading) {
                 if vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
                     MusicLiveActivity()
@@ -170,7 +170,7 @@ struct ContentView: View {
                 } else if vm.notchState == .open {
                     BossHeader()
                         .frame(height: max(48, vm.effectiveClosedNotchHeight))
-                        .padding(.bottom, 6)
+                        .padding(.bottom, 0)
                 } else {
                     Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                 }
@@ -1033,6 +1033,8 @@ private struct QuickNotesView: View {
                 .scaleEffect(selectedNote == nil ? 1 : 0.94)
                 .allowsHitTesting(selectedNote == nil)
 
+
+
             // ── LAYER 1: dim ──────────────────────────────────────────
             Color.black.opacity(selectedNote == nil ? 0 : 0.60)
                 .allowsHitTesting(selectedNote != nil)
@@ -1063,29 +1065,32 @@ private struct QuickNotesView: View {
     // ── Grid ──────────────────────────────────────────────────────────
     @ViewBuilder
     private var gridView: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Quick Notes")
-                    .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
                 Spacer()
-                HStack(spacing: 6) {
-                    Button { newNote() } label: {
-                        iconCircle("plus")
-                    }
-                    .buttonStyle(.plain)
-                    .help("New note")
 
-                    Button { coordinator.toggleNotesExpanded() } label: {
-                        iconCircle(coordinator.isNotesExpanded
-                            ? "arrow.down.right.and.arrow.up.left"
-                            : "arrow.up.left.and.arrow.down.right")
-                    }
-                    .buttonStyle(.plain)
-                    .help(coordinator.isNotesExpanded ? "Küçült" : "Büyüt")
+                Button { newNote() } label: {
+                    Image(systemName: "plus")
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(Color.white.opacity(0.08)))
                 }
+                .buttonStyle(.plain)
+                .help("New note")
+
+                Button { coordinator.toggleNotesExpanded() } label: {
+                    Image(systemName: coordinator.isNotesExpanded
+                        ? "arrow.down.right.and.arrow.up.left"
+                        : "arrow.up.left.and.arrow.down.right")
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(Color.white.opacity(0.08)))
+                }
+                .buttonStyle(.plain)
+                .help(coordinator.isNotesExpanded ? "Küçült" : "Büyüt")
             }
             .padding(.top, 0)
+            .padding(.bottom, 8)
 
             if notes.items.isEmpty {
                 VStack(spacing: 8) {

@@ -40,7 +40,7 @@ extension NSItemProvider {
                         cont.resume(returning: nil)
                         return
                     }
-                    self.suggestedName = self.suggestedName ?? url.lastPathComponent
+
                     
                     let fileManager = FileManager.default
                     let folderURL = url.deletingLastPathComponent()
