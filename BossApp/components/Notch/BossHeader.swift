@@ -65,7 +65,7 @@ struct BossHeader: View {
                                 .overlay {
                                     Image(systemName: "web.camera")
                                         .foregroundColor(.white)
-                                        .padding()
+                                        .padding(4)
                                         .imageScale(.medium)
                                 }
                         }
@@ -81,7 +81,7 @@ struct BossHeader: View {
                                 .overlay {
                                     Image(systemName: "gear")
                                         .foregroundColor(.white)
-                                        .padding()
+                                        .padding(4)
                                         .imageScale(.medium)
                                 }
                         }
@@ -96,6 +96,8 @@ struct BossHeader: View {
             .zIndex(2)
         }
         .foregroundColor(.gray)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
         .environmentObject(vm)
     }
 }

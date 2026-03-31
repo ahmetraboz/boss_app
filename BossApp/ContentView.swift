@@ -162,14 +162,15 @@ struct ContentView: View {
 
     @ViewBuilder
     func NotchLayout() -> some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading) {
                 if vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
                     MusicLiveActivity()
                         .frame(alignment: .center)
                 } else if vm.notchState == .open {
                     BossHeader()
-                        .frame(height: max(24, vm.effectiveClosedNotchHeight))
+                        .frame(height: max(48, vm.effectiveClosedNotchHeight))
+                        .padding(.bottom, 6)
                 } else {
                     Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                 }
@@ -837,7 +838,9 @@ private struct ScreenshotView: View {
             )
             .overlay {
                 content
-                    .padding(12)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 16)
+                    .padding(.bottom, 12)
             }
             .transaction { transaction in
                 transaction.animation = vm.animation
@@ -862,6 +865,7 @@ private struct ScreenshotView: View {
                 .buttonStyle(.plain)
                 .help(coordinator.isScreenshotsExpanded ? "Collapse screenshots" : "Expand screenshots")
             }
+            .padding(.top, 0)
             .padding(.bottom, 8)
 
             if screenshots.isEmpty {
@@ -1009,7 +1013,9 @@ private struct QuickNotesView: View {
             )
             .overlay {
                 notesContent
-                    .padding(12)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 16)
+                    .padding(.bottom, 12)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1079,6 +1085,7 @@ private struct QuickNotesView: View {
                     .help(coordinator.isNotesExpanded ? "Küçült" : "Büyüt")
                 }
             }
+            .padding(.top, 0)
 
             if notes.items.isEmpty {
                 VStack(spacing: 8) {
