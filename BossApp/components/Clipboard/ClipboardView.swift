@@ -41,87 +41,32 @@ struct ClipboardView: View {
 
     @ViewBuilder
     private var content: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center, spacing: 10) {
-                Spacer()
-
-                HStack(spacing: 8) {
-                    if shouldShowSearchField {
-                        compactSearchField
-                            .transition(.move(edge: .trailing).combined(with: .opacity))
-                    } else {
-                        Button {
-                            expandSearch()
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundStyle(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Circle().fill(Color.white.opacity(0.08)))
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    Button {
-                        toggleExpandedMode()
-                    } label: {
-                        Image(systemName: coordinator.isClipboardExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                            .foregroundStyle(.white)
-                            .frame(width: 28, height: 28)
-                            .background(Circle().fill(Color.white.opacity(0.08)))
-                    }
-                    .buttonStyle(.plain)
-                    .help(coordinator.isClipboardExpanded ? "Collapse clipboard" : "Expand clipboard")
-
-                    if !clipboard.isEmpty {
-                        Button {
-                            clipboard.clearUnpinned()
-                        } label: {
-                            Text("Clear")
-                                .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: false)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Capsule().fill(Color.white.opacity(0.08)))
-                        .foregroundStyle(.white)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .layoutPriority(1)
-                    }
-                }
-            }
-            .padding(.bottom, 8)
-
+        Group {
             if clipboard.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: "clipboard")
                         .font(.system(size: 28, weight: .medium))
                         .foregroundStyle(.gray.opacity(0.9))
-
                     Text("Copy text, images, or files")
                         .foregroundStyle(.gray)
                         .font(.system(.title3, design: .rounded))
                         .fontWeight(.medium)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.bottom, 24)
             } else if visibleItems.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 24, weight: .medium))
                         .foregroundStyle(.white.opacity(0.9))
-
                     Text("No matches")
                         .foregroundStyle(.white)
                         .font(.system(.headline, design: .rounded))
-
                     Text("Try a different word or clear the search field.")
                         .foregroundStyle(.secondary)
                         .font(.system(.subheadline, design: .rounded))
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.bottom, 24)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 8) {
@@ -137,12 +82,54 @@ struct ClipboardView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 2)
                 }
-                .padding(.top, 4)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .scrollIndicators(.never)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .overlay(alignment: .topTrailing) {
+            HStack(alignment: .center, spacing: 8) {
+                if shouldShowSearchField {
+                    compactSearchField
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                } else {
+                    Button { expandSearch() } label: {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.white)
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(Color.white.opacity(0.08)))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Button { toggleExpandedMode() } label: {
+                    Image(systemName: coordinator.isClipboardExpanded
+                        ? "arrow.down.right.and.arrow.up.left"
+                        : "arrow.up.left.and.arrow.down.right")
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(Color.white.opacity(0.08)))
+                }
+                .buttonStyle(.plain)
+                .help(coordinator.isClipboardExpanded ? "Collapse clipboard" : "Expand clipboard")
+
+                if !clipboard.isEmpty {
+                    Button { clipboard.clearUnpinned() } label: {
+                        Text("Clear")
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(0.08)))
+                    .foregroundStyle(.white)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .layoutPriority(1)
+                }
+            }
+            .animation(.smooth(duration: 0.2), value: shouldShowSearchField)
+        }
     }
 
     private var compactSearchField: some View {

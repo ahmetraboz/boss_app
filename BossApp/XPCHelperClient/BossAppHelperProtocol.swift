@@ -16,4 +16,6 @@ import Foundation
     func isScreenBrightnessAvailable(with reply: @escaping (Bool) -> Void)
     func currentScreenBrightness(with reply: @escaping (NSNumber?) -> Void)
     func setScreenBrightness(_ value: Float, with reply: @escaping (Bool) -> Void)
+    // Screenshot listing (performed by the helper - no sandbox restrictions)
+    func getScreenshotPaths(limit: Int, with reply: @escaping ([String]) -> Void)
 }

@@ -1,62 +1,62 @@
-import Foundation
-import Cocoa
 @preconcurrency import BossXPCBridge
+import Cocoa
+import Foundation
 
 final class XPCHelperClient: NSObject, @unchecked Sendable {
     nonisolated static let shared = XPCHelperClient()
-    
+
     private let serviceName = "com.ahmetboz.bossapp.helper"
-    
+
     private var remoteService: RemoteXPCService<BossAppHelperProtocol>?
     private var connection: NSXPCConnection?
-    
+
     deinit {
         connection?.invalidate()
     }
-    
+
     // MARK: - Connection Management (Main Actor Isolated)
-    
+
     @MainActor
     private func ensureRemoteService() -> RemoteXPCService<BossAppHelperProtocol> {
         if let existing = remoteService {
             return existing
         }
-        
+
         let conn = NSXPCConnection(serviceName: serviceName)
-        
+
         conn.interruptionHandler = { [weak self] in
             Task { @MainActor in
                 self?.connection = nil
                 self?.remoteService = nil
             }
         }
-        
+
         conn.invalidationHandler = { [weak self] in
             Task { @MainActor in
                 self?.connection = nil
                 self?.remoteService = nil
             }
         }
-        
+
         conn.resume()
-        
+
         let service = RemoteXPCService<BossAppHelperProtocol>(
             connection: conn,
             remoteInterface: BossAppHelperProtocol.self
         )
-        
+
         connection = conn
         remoteService = service
         return service
     }
-    
+
     @MainActor
     private func getRemoteService() -> RemoteXPCService<BossAppHelperProtocol>? {
         remoteService
     }
-    
+
     // MARK: - Keyboard Brightness
-    
+
     nonisolated func isKeyboardBrightnessAvailable() async -> Bool {
         do {
             let service = await MainActor.run {
@@ -71,7 +71,7 @@ final class XPCHelperClient: NSObject, @unchecked Sendable {
             return false
         }
     }
-    
+
     nonisolated func currentKeyboardBrightness() async -> Float? {
         do {
             let service = await MainActor.run {
@@ -87,7 +87,7 @@ final class XPCHelperClient: NSObject, @unchecked Sendable {
             return nil
         }
     }
-    
+
     nonisolated func setKeyboardBrightness(_ value: Float) async -> Bool {
         do {
             let service = await MainActor.run {
@@ -102,9 +102,9 @@ final class XPCHelperClient: NSObject, @unchecked Sendable {
             return false
         }
     }
-    
+
     // MARK: - Screen Brightness
-    
+
     nonisolated func isScreenBrightnessAvailable() async -> Bool {
         do {
             let service = await MainActor.run {
@@ -119,7 +119,7 @@ final class XPCHelperClient: NSObject, @unchecked Sendable {
             return false
         }
     }
-    
+
     nonisolated func currentScreenBrightness() async -> Float? {
         do {
             let service = await MainActor.run {
@@ -135,7 +135,7 @@ final class XPCHelperClient: NSObject, @unchecked Sendable {
             return nil
         }
     }
-    
+
     nonisolated func setScreenBrightness(_ value: Float) async -> Bool {
         do {
             let service = await MainActor.run {
@@ -148,6 +148,23 @@ final class XPCHelperClient: NSObject, @unchecked Sendable {
             }
         } catch {
             return false
+        }
+    }
+
+    // MARK: - Screenshot Paths
+
+    nonisolated func getScreenshotPaths(limit: Int = 100) async -> [String] {
+        do {
+            let service = await MainActor.run {
+                ensureRemoteService()
+            }
+            return try await service.withContinuation { service, continuation in
+                service.getScreenshotPaths(limit: limit) { paths in
+                    continuation.resume(returning: paths)
+                }
+            }
+        } catch {
+            return []
         }
     }
 }

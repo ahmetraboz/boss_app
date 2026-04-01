@@ -4,9 +4,9 @@
 //
 //
 
+import CoreGraphics
 import Foundation
 import IOKit
-import CoreGraphics
 
 class BossAppHelper: NSObject, BossAppHelperProtocol {
     private class KeyboardBrightnessClient {
@@ -19,7 +19,7 @@ class BossAppHelper: NSObject, BossAppHelperProtocol {
             var loaded = false
             let bundlePaths = [
                 "/System/Library/PrivateFrameworks/CoreBrightness.framework",
-                "/System/Library/PrivateFrameworks/CoreBrightness.framework/CoreBrightness"
+                "/System/Library/PrivateFrameworks/CoreBrightness.framework/CoreBrightness",
             ]
             for path in bundlePaths where !loaded {
                 if let bundle = Bundle(path: path) {
@@ -35,24 +35,27 @@ class BossAppHelper: NSObject, BossAppHelperProtocol {
 
         func currentBrightness() -> Float? {
             guard let clientInstance,
-                  let fn: BrightnessGetter = methodIMP(on: clientInstance, selector: getSelector, as: BrightnessGetter.self)
+                let fn: BrightnessGetter = methodIMP(
+                    on: clientInstance, selector: getSelector, as: BrightnessGetter.self)
             else { return nil }
             return fn(clientInstance, getSelector, Self.keyboardID)
         }
 
         func setBrightness(_ value: Float) -> Bool {
             guard let clientInstance,
-                  let fn: BrightnessSetter = methodIMP(on: clientInstance, selector: setSelector, as: BrightnessSetter.self)
+                let fn: BrightnessSetter = methodIMP(
+                    on: clientInstance, selector: setSelector, as: BrightnessSetter.self)
             else { return false }
             return fn(clientInstance, setSelector, value, Self.keyboardID).boolValue
         }
 
         private typealias BrightnessGetter = @convention(c) (NSObject, Selector, UInt64) -> Float
-        private typealias BrightnessSetter = @convention(c) (NSObject, Selector, Float, UInt64) -> ObjCBool
+        private typealias BrightnessSetter =
+            @convention(c) (NSObject, Selector, Float, UInt64) -> ObjCBool
 
         private func methodIMP<T>(on object: NSObject, selector: Selector, as type: T.Type) -> T? {
             guard let cls = object_getClass(object),
-                  let method = class_getInstanceMethod(cls, selector)
+                let method = class_getInstanceMethod(cls, selector)
             else { return nil }
             let imp = method_getImplementation(method)
             return unsafeBitCast(imp, to: type)
@@ -76,7 +79,9 @@ class BossAppHelper: NSObject, BossAppHelperProtocol {
 
     @objc func isScreenBrightnessAvailable(with reply: @escaping (Bool) -> Void) {
         var b: Float = 0
-        reply(displayServicesGetBrightness(displayID: CGMainDisplayID(), out: &b) || ioServiceFor(displayID: CGMainDisplayID()) != nil)
+        reply(
+            displayServicesGetBrightness(displayID: CGMainDisplayID(), out: &b)
+                || ioServiceFor(displayID: CGMainDisplayID()) != nil)
     }
 
     @objc func currentScreenBrightness(with reply: @escaping (NSNumber?) -> Void) {
@@ -87,7 +92,9 @@ class BossAppHelper: NSObject, BossAppHelperProtocol {
         }
         if let io = ioServiceFor(displayID: CGMainDisplayID()) {
             var level: Float = 0
-            if IODisplayGetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, &level) == kIOReturnSuccess {
+            if IODisplayGetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, &level)
+                == kIOReturnSuccess
+            {
                 IOObjectRelease(io)
                 reply(NSNumber(value: level))
                 return
@@ -104,7 +111,9 @@ class BossAppHelper: NSObject, BossAppHelperProtocol {
             return
         }
         if let io = ioServiceFor(displayID: CGMainDisplayID()) {
-            let ok = IODisplaySetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, clamped) == kIOReturnSuccess
+            let ok =
+                IODisplaySetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, clamped)
+                == kIOReturnSuccess
             IOObjectRelease(io)
             reply(ok)
             return
@@ -113,18 +122,27 @@ class BossAppHelper: NSObject, BossAppHelperProtocol {
     }
 
     // MARK: - Private helpers for DisplayServices / IOKit access
-    private func displayServicesGetBrightness(displayID: CGDirectDisplayID, out: inout Float) -> Bool {
-        guard let sym = dlsym(DisplayServicesHandle.handle, "DisplayServicesGetBrightness") else { return false }
+    private func displayServicesGetBrightness(displayID: CGDirectDisplayID, out: inout Float)
+        -> Bool
+    {
+        guard let sym = dlsym(DisplayServicesHandle.handle, "DisplayServicesGetBrightness") else {
+            return false
+        }
         typealias Fn = @convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32
         let fn = unsafeBitCast(sym, to: Fn.self)
         var tmp: Float = 0
         let r = fn(displayID, &tmp)
-        if r == 0 { out = tmp; return true }
+        if r == 0 {
+            out = tmp
+            return true
+        }
         return false
     }
 
     private func displayServicesSetBrightness(displayID: CGDirectDisplayID, value: Float) -> Bool {
-        guard let sym = dlsym(DisplayServicesHandle.handle, "DisplayServicesSetBrightness") else { return false }
+        guard let sym = dlsym(DisplayServicesHandle.handle, "DisplayServicesSetBrightness") else {
+            return false
+        }
         typealias Fn = @convention(c) (CGDirectDisplayID, Float) -> Int32
         let fn = unsafeBitCast(sym, to: Fn.self)
         return fn(displayID, value) == 0
@@ -132,15 +150,20 @@ class BossAppHelper: NSObject, BossAppHelperProtocol {
 
     private func ioServiceFor(displayID: CGDirectDisplayID) -> io_service_t? {
         var iterator: io_iterator_t = 0
-        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IODisplayConnect"), &iterator) == kIOReturnSuccess else { return nil }
+        guard
+            IOServiceGetMatchingServices(
+                kIOMainPortDefault, IOServiceMatching("IODisplayConnect"), &iterator)
+                == kIOReturnSuccess
+        else { return nil }
         defer { IOObjectRelease(iterator) }
 
         while case let service = IOIteratorNext(iterator), service != 0 {
             let info = IODisplayCreateInfoDictionary(service, 0).takeRetainedValue() as NSDictionary
             if let vendorID = info[kDisplayVendorID] as? UInt32,
-               let productID = info[kDisplayProductID] as? UInt32,
-               vendorID == CGDisplayVendorNumber(displayID),
-               productID == CGDisplayModelNumber(displayID) {
+                let productID = info[kDisplayProductID] as? UInt32,
+                vendorID == CGDisplayVendorNumber(displayID),
+                productID == CGDisplayModelNumber(displayID)
+            {
                 return service
             }
             IOObjectRelease(service)
@@ -148,12 +171,90 @@ class BossAppHelper: NSObject, BossAppHelperProtocol {
         return nil
     }
 
+    // MARK: - Screenshot listing (no sandbox restrictions in helper)
+    @objc func getScreenshotPaths(limit: Int, with reply: @escaping ([String]) -> Void) {
+        let fileManager = FileManager.default
+        let defaults = UserDefaults(suiteName: "com.apple.screencapture")
+        let rawPath = defaults?.string(forKey: "location")
+
+        var pathsToCheck: [String] = []
+
+        if let rawPath, !rawPath.isEmpty {
+            pathsToCheck.append(NSString(string: rawPath).expandingTildeInPath)
+        }
+
+        let homeDir = fileManager.homeDirectoryForCurrentUser.path
+        pathsToCheck.append(homeDir + "/Desktop")
+        pathsToCheck.append(homeDir + "/Documents")
+        pathsToCheck.append(homeDir + "/Belgeler")  // Turkish
+        pathsToCheck.append(homeDir + "/Pictures")
+        pathsToCheck.append(homeDir + "/Downloads")
+
+        var allScreenshots: [(url: URL, date: Date)] = []
+
+        for path in pathsToCheck {
+            let dirURL = URL(fileURLWithPath: path, isDirectory: true)
+            var isDirectory: ObjCBool = false
+
+            guard fileManager.fileExists(atPath: dirURL.path, isDirectory: &isDirectory),
+                isDirectory.boolValue
+            else { continue }
+
+            let keys: Set<URLResourceKey> = [
+                .creationDateKey, .contentModificationDateKey, .isRegularFileKey,
+            ]
+            guard
+                let fileURLs = try? fileManager.contentsOfDirectory(
+                    at: dirURL,
+                    includingPropertiesForKeys: Array(keys),
+                    options: [.skipsHiddenFiles]
+                )
+            else { continue }
+
+            for fileURL in fileURLs {
+                let ext = fileURL.pathExtension.lowercased()
+                guard ["png", "jpg", "jpeg", "tiff", "heic", "gif", "webp"].contains(ext) else {
+                    continue
+                }
+
+                let fileName = fileURL.deletingPathExtension().lastPathComponent.lowercased()
+                let normalized = fileName.folding(
+                    options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+
+                let screenshotPrefixes = [
+                    "screen shot", "screenshot", "ekran resmi", "ekran goruntusu",
+                    "ekran goruntuleri", "ekran görüntüsü", "ekran görüntüleri",
+                ]
+
+                guard screenshotPrefixes.contains(where: { normalized.hasPrefix($0) }) else {
+                    continue
+                }
+
+                let resourceValues = try? fileURL.resourceValues(forKeys: keys)
+                guard resourceValues?.isRegularFile == true else { continue }
+
+                let createdAt =
+                    resourceValues?.creationDate ?? resourceValues?.contentModificationDate
+                    ?? .distantPast
+                allScreenshots.append((fileURL, createdAt))
+            }
+        }
+
+        let sortedPaths =
+            allScreenshots
+            .sorted { $0.date > $1.date }
+            .prefix(limit)
+            .map { $0.url.path }
+
+        reply(Array(sortedPaths))
+    }
+
     // MARK: - Helper handle for private framework
     private enum DisplayServicesHandle {
         static let handle: UnsafeMutableRawPointer? = {
             let paths = [
                 "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices",
-                "/System/Library/PrivateFrameworks/DisplayServices.framework/Versions/Current/DisplayServices"
+                "/System/Library/PrivateFrameworks/DisplayServices.framework/Versions/Current/DisplayServices",
             ]
             for p in paths {
                 if let h = dlopen(p, RTLD_LAZY) { return h }

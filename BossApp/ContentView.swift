@@ -23,7 +23,8 @@ struct ContentView: View {
     @Namespace var albumArtNamespace
 
     // Shared interactive spring for movement/resizing to avoid conflicting animations
-    private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
+    private let animationSpring = Animation.interactiveSpring(
+        response: 0.38, dampingFraction: 0.8, blendDuration: 0)
 
     private let extendedHoverPadding: CGFloat = 30
     private let zeroHeightHoverPadding: CGFloat = 10
@@ -65,8 +66,8 @@ struct ContentView: View {
                     .padding(
                         .horizontal,
                         vm.notchState == .open
-                        ? cornerRadiusInsets.opened.top
-                        : cornerRadiusInsets.closed.bottom
+                            ? cornerRadiusInsets.opened.top
+                            : cornerRadiusInsets.closed.bottom
                     )
                     .padding([.horizontal, .bottom], vm.notchState == .open ? 12 : 0)
                     .background(.black)
@@ -78,22 +79,28 @@ struct ContentView: View {
                             .padding(.horizontal, topCornerRadius)
                     }
                     .shadow(
-                        color: (vm.notchState == .open || isHovering) ? .black.opacity(0.7) : .clear,
+                        color: (vm.notchState == .open || isHovering)
+                            ? .black.opacity(0.7) : .clear,
                         radius: 6
                     )
                     .padding(
                         .bottom,
                         vm.effectiveClosedNotchHeight == 0 ? 10 : 0
                     )
-                
+
                 mainLayout
                     .frame(height: vm.notchState == .open ? vm.notchSize.height : nil)
                     .conditionalModifier(true) { view in
-                        let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
-                        let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
-                        
-                        return view
-                            .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)
+                        let openAnimation = Animation.spring(
+                            response: 0.42, dampingFraction: 0.8, blendDuration: 0)
+                        let closeAnimation = Animation.spring(
+                            response: 0.45, dampingFraction: 1.0, blendDuration: 0)
+
+                        return
+                            view
+                            .animation(
+                                vm.notchState == .open ? openAnimation : closeAnimation,
+                                value: vm.notchState)
                     }
                     .contentShape(Rectangle())
                     .onHover { hovering in
@@ -164,7 +171,10 @@ struct ContentView: View {
     func NotchLayout() -> some View {
         VStack(alignment: .leading, spacing: 4) {
             VStack(alignment: .leading) {
-                if vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
+                if vm.notchState == .closed
+                    && (musicManager.isPlaying || !musicManager.isPlayerIdle)
+                    && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
+                {
                     MusicLiveActivity()
                         .frame(alignment: .center)
                 } else if vm.notchState == .open {
@@ -172,7 +182,8 @@ struct ContentView: View {
                         .frame(height: max(48, vm.effectiveClosedNotchHeight))
                         .padding(.bottom, 0)
                 } else {
-                    Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
+                    Rectangle().fill(.clear).frame(
+                        width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                 }
             }
             .zIndex(2)
@@ -194,14 +205,16 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .transition(
                     .scale(scale: 0.8, anchor: .top)
-                    .combined(with: .opacity)
-                    .animation(.smooth(duration: 0.35))
+                        .combined(with: .opacity)
+                        .animation(.smooth(duration: 0.35))
                 )
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
             }
         }
-        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting))
+        .onDrop(
+            of: [.fileURL, .url, .utf8PlainText, .plainText, .data],
+            delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting))
     }
 
     @ViewBuilder
@@ -261,11 +274,14 @@ struct ContentView: View {
             Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
-        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
-            vm.dropEvent = true
-            ShelfStateViewModel.shared.load(providers)
-            return true
-        }
+                .onDrop(
+                    of: [.fileURL, .url, .utf8PlainText, .plainText, .data],
+                    isTargeted: $vm.dragDetectorTargeting
+                ) { providers in
+                    vm.dropEvent = true
+                    ShelfStateViewModel.shared.load(providers)
+                    return true
+                }
         } else {
             EmptyView()
         }
@@ -282,27 +298,29 @@ struct ContentView: View {
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch { return }
         hoverTask?.cancel()
-        
+
         if hovering {
             withAnimation(animationSpring) {
                 isHovering = true
             }
-            
+
             if vm.notchState == .closed && BossConfig[.enableHaptics] {
                 haptics.toggle()
             }
-            
+
             guard vm.notchState == .closed,
-                  BossConfig[.openNotchOnHover] else { return }
-            
+                BossConfig[.openNotchOnHover]
+            else { return }
+
             hoverTask = Task {
                 try? await Task.sleep(for: .seconds(BossConfig[.minimumHoverDuration]))
                 guard !Task.isCancelled else { return }
-                
+
                 await MainActor.run {
                     guard self.vm.notchState == .closed,
-                          self.isHovering else { return }
-                    
+                        self.isHovering
+                    else { return }
+
                     self.doOpen()
                 }
             }
@@ -310,7 +328,7 @@ struct ContentView: View {
             hoverTask = Task {
                 try? await Task.sleep(for: .milliseconds(100))
                 guard !Task.isCancelled else { return }
-                
+
                 await MainActor.run {
                     withAnimation(animationSpring) {
                         self.isHovering = false
@@ -374,7 +392,10 @@ private struct QuickNoteItem: Identifiable, Codable, Hashable {
     let createdAt: Date
     var updatedAt: Date
 
-    init(id: UUID = UUID(), title: String = "", body: String = "", isPinned: Bool = false, createdAt: Date = .now, updatedAt: Date = .now) {
+    init(
+        id: UUID = UUID(), title: String = "", body: String = "", isPinned: Bool = false,
+        createdAt: Date = .now, updatedAt: Date = .now
+    ) {
         self.id = id
         self.title = title
         self.body = body
@@ -396,10 +417,12 @@ private struct QuickNoteItem: Identifiable, Codable, Hashable {
             return trimmedTitle
         }
 
-        if let firstLine = trimmedBody
+        if let firstLine =
+            trimmedBody
             .split(whereSeparator: \.isNewline)
             .map({ String($0).trimmingCharacters(in: .whitespacesAndNewlines) })
-            .first(where: { !$0.isEmpty }) {
+            .first(where: { !$0.isEmpty })
+        {
             return firstLine
         }
 
@@ -407,7 +430,8 @@ private struct QuickNoteItem: Identifiable, Codable, Hashable {
     }
 
     var previewText: String {
-        let bodyLines = trimmedBody
+        let bodyLines =
+            trimmedBody
             .split(whereSeparator: \.isNewline)
             .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
@@ -561,7 +585,8 @@ private final class QuickNotesStateViewModel: ObservableObject {
 
     private var selectedIndex: Int? {
         if let selectedNoteID,
-           let index = items.firstIndex(where: { $0.id == selectedNoteID }) {
+            let index = items.firstIndex(where: { $0.id == selectedNoteID })
+        {
             return index
         }
 
@@ -629,6 +654,14 @@ final class ScreenshotStateViewModel: ObservableObject {
     static let shared = ScreenshotStateViewModel()
 
     @Published private(set) var items: [ScreenshotItem] = []
+    @Published var screenshotFolderURL: URL? {
+        didSet {
+            if let url = screenshotFolderURL {
+                UserDefaults.standard.set(url.absoluteString, forKey: "screenshotFolderURL")
+            }
+            reload()
+        }
+    }
 
     var isEmpty: Bool { items.isEmpty }
 
@@ -636,6 +669,17 @@ final class ScreenshotStateViewModel: ObservableObject {
     private var monitorTask: Task<Void, Never>?
 
     private init() {
+        // Load saved folder URL from UserDefaults
+        if let savedURL = UserDefaults.standard.string(forKey: "screenshotFolderURL"),
+            let url = URL(string: savedURL)
+        {
+            self.screenshotFolderURL = url
+        } else {
+            // Default to ~/Pictures/Screenshots
+            self.screenshotFolderURL = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Pictures")
+                .appendingPathComponent("Screenshots")
+        }
         reload()
     }
 
@@ -647,11 +691,14 @@ final class ScreenshotStateViewModel: ObservableObject {
         guard monitorTask == nil else { return }
         reload()
 
-        monitorTask = Task { [weak self] in
+        monitorTask = Task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2))
                 guard !Task.isCancelled else { break }
-                self?.reload()
+
+                await MainActor.run {
+                    self.reload()
+                }
             }
         }
     }
@@ -662,7 +709,48 @@ final class ScreenshotStateViewModel: ObservableObject {
     }
 
     func reload() {
-        items = Self.loadScreenshotItems(limit: maxItems)
+        Task { @MainActor in
+            guard let folderURL = screenshotFolderURL else {
+                self.items = []
+                return
+            }
+
+            // Check if folder exists, if not create it
+            if !FileManager.default.fileExists(atPath: folderURL.path) {
+                try? FileManager.default.createDirectory(
+                    at: folderURL,
+                    withIntermediateDirectories: true
+                )
+            }
+
+            let fileManager = FileManager.default
+            guard
+                let contents = try? fileManager.contentsOfDirectory(
+                    at: folderURL,
+                    includingPropertiesForKeys: [
+                        .creationDateKey,
+                        .contentModificationDateKey,
+                        .fileSizeKey,
+                    ]
+                )
+            else {
+                self.items = []
+                return
+            }
+
+            let items =
+                contents
+                .prefix(maxItems)
+                .compactMap { url -> ScreenshotItem? in
+                    return ScreenshotItem(url: url)
+                }
+                .sorted { $0.createdAt > $1.createdAt }
+
+            self.items = items
+            print(
+                "📸 Screenshots loaded from \(folderURL.lastPathComponent): \(self.items.count) items found"
+            )
+        }
     }
 
     func open(_ item: ScreenshotItem) {
@@ -713,48 +801,10 @@ final class ScreenshotStateViewModel: ObservableObject {
     }
 
     private static func loadScreenshotItems(limit: Int) -> [ScreenshotItem] {
-        guard let directoryURL = screenshotDirectoryURL() else { return [] }
-
-        let keys: [URLResourceKey] = [
-            .creationDateKey,
-            .contentModificationDateKey,
-            .isRegularFileKey,
-            .fileSizeKey
-        ]
-
-        let fileURLs = (try? FileManager.default.contentsOfDirectory(
-            at: directoryURL,
-            includingPropertiesForKeys: keys,
-            options: [.skipsHiddenFiles]
-        )) ?? []
-
-        return fileURLs
-            .compactMap(ScreenshotItem.init(url:))
-            .sorted { $0.createdAt > $1.createdAt }
-            .prefix(limit)
-            .map { $0 }
+        // Now handled by XPC Helper - this is deprecated
+        return []
     }
 
-    private static func screenshotDirectoryURL() -> URL? {
-        let fileManager = FileManager.default
-        let rawPath = UserDefaults(suiteName: "com.apple.screencapture")?.string(forKey: "location")
-        let resolvedPath: String
-
-        if let rawPath, !rawPath.isEmpty {
-            resolvedPath = NSString(string: rawPath).expandingTildeInPath
-        } else {
-            resolvedPath = (NSSearchPathForDirectoriesInDomains(.desktopDirectory, .userDomainMask, true).first)
-                ?? NSString(string: "~/Desktop").expandingTildeInPath
-        }
-
-        let url = URL(fileURLWithPath: resolvedPath, isDirectory: true)
-        var isDirectory: ObjCBool = false
-        guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory), isDirectory.boolValue else {
-            return nil
-        }
-
-        return url
-    }
 }
 
 struct ScreenshotItem: Identifiable, Hashable {
@@ -766,7 +816,8 @@ struct ScreenshotItem: Identifiable, Hashable {
 
     init?(url: URL) {
         let lowercasedExtension = url.pathExtension.lowercased()
-        guard ["png", "jpg", "jpeg", "tiff", "heic", "gif", "webp"].contains(lowercasedExtension) else {
+        guard ["png", "jpg", "jpeg", "tiff", "heic", "gif", "webp"].contains(lowercasedExtension)
+        else {
             return nil
         }
 
@@ -779,13 +830,14 @@ struct ScreenshotItem: Identifiable, Hashable {
             .creationDateKey,
             .contentModificationDateKey,
             .isRegularFileKey,
-            .fileSizeKey
+            .fileSizeKey,
         ])
 
         guard resourceValues?.isRegularFile == true else { return nil }
 
         self.url = url
-        self.createdAt = resourceValues?.creationDate ?? resourceValues?.contentModificationDate ?? .distantPast
+        self.createdAt =
+            resourceValues?.creationDate ?? resourceValues?.contentModificationDate ?? .distantPast
         self.fileSize = resourceValues?.fileSize
     }
 
@@ -795,7 +847,8 @@ struct ScreenshotItem: Identifiable, Hashable {
 
     var subtitle: String {
         if let fileSize {
-            return "\(relativeTimestamp) • \(ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file))"
+            return
+                "\(relativeTimestamp) • \(ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file))"
         }
         return relativeTimestamp
     }
@@ -807,7 +860,8 @@ struct ScreenshotItem: Identifiable, Hashable {
     }
 
     private static func matchesScreenshotName(_ name: String) -> Bool {
-        let normalized = name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        let normalized = name.folding(
+            options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
         let prefixes = [
             "screen shot",
             "screenshot",
@@ -817,7 +871,7 @@ struct ScreenshotItem: Identifiable, Hashable {
             "ekran goruntusu",
             "ekran goruntusu",
             "ekran görüntüsü",
-            "ekran görüntüleri"
+            "ekran görüntüleri",
         ]
 
         return prefixes.contains { normalized.hasPrefix($0) }
@@ -827,7 +881,7 @@ struct ScreenshotItem: Identifiable, Hashable {
 private struct ScreenshotView: View {
     @EnvironmentObject var vm: BossViewModel
     @ObservedObject private var coordinator = BossViewCoordinator.shared
-    @StateObject private var screenshots = ScreenshotStateViewModel.shared
+    @ObservedObject private var screenshots = ScreenshotStateViewModel.shared
 
     var body: some View {
         RoundedRectangle(cornerRadius: 16)
@@ -846,44 +900,39 @@ private struct ScreenshotView: View {
                 transaction.animation = vm.animation
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onAppear {
+                print("📸 ScreenshotView appeared")
+                screenshots.reload()
+                screenshots.startMonitoring()
+            }
+            .onDisappear {
+                print("📸 ScreenshotView disappeared")
+                screenshots.stopMonitoring()
+            }
     }
 
     @ViewBuilder
     private var content: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Spacer()
-
-                Button {
-                    coordinator.toggleScreenshotsExpanded()
-                } label: {
-                    Image(systemName: coordinator.isScreenshotsExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                        .foregroundStyle(.white)
-                        .frame(width: 28, height: 28)
-                        .background(Circle().fill(Color.white.opacity(0.08)))
-                }
-                .buttonStyle(.plain)
-                .help(coordinator.isScreenshotsExpanded ? "Collapse screenshots" : "Expand screenshots")
-            }
-            .padding(.top, 0)
-            .padding(.bottom, 8)
-
+        Group {
             if screenshots.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.gray.opacity(0.9))
-
+                VStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.06))
+                        .frame(width: 80, height: 60)
+                        .overlay {
+                            Image(systemName: "photo.fill")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundStyle(.gray.opacity(0.7))
+                        }
                     Text("Screenshots")
                         .foregroundStyle(.gray)
                         .font(.system(.title3, design: .rounded))
                         .fontWeight(.medium)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.bottom, 24)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 8) {
+                    VStack(spacing: 8) {
                         ForEach(screenshots.items) { item in
                             ScreenshotRowView(
                                 item: item,
@@ -897,11 +946,27 @@ private struct ScreenshotView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 2)
                 }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .scrollIndicators(.never)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .overlay(alignment: .topTrailing) {
+            Button {
+                coordinator.toggleScreenshotsExpanded()
+            } label: {
+                Image(
+                    systemName: coordinator.isScreenshotsExpanded
+                        ? "arrow.down.right.and.arrow.up.left"
+                        : "arrow.up.left.and.arrow.down.right"
+                )
+                .foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(Color.white.opacity(0.08)))
+            }
+            .buttonStyle(.plain)
+            .help(coordinator.isScreenshotsExpanded ? "Collapse screenshots" : "Expand screenshots")
+        }
     }
 }
 
@@ -919,7 +984,7 @@ private struct ScreenshotRowView: View {
             preview
 
             Button(action: onOpen) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(item.title)
                         .font(.system(.subheadline, design: .rounded))
                         .foregroundStyle(.white)
@@ -958,30 +1023,27 @@ private struct ScreenshotRowView: View {
 
     @ViewBuilder
     private var preview: some View {
-        if let image = NSImage(contentsOf: item.url) {
-            Image(nsImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 50, height: 38)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
-        } else {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.06))
-                .overlay {
-                    Image(systemName: "photo")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.9))
-                }
-                .frame(width: 50, height: 38)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
+        Group {
+            if let image = NSImage(contentsOf: item.url) {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 38, height: 38)
+                    .clipped()
+            } else {
+                Image(systemName: "photo")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.white.opacity(0.06))
+            }
         }
+        .frame(width: 38, height: 38)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private func actionButton(systemName: String, action: @escaping () -> Void) -> some View {
@@ -1012,86 +1074,75 @@ private struct QuickNotesView: View {
                     .fill(Color.white.opacity(0.03))
             )
             .overlay {
-                notesContent
+                content
                     .padding(.horizontal, 12)
                     .padding(.top, 16)
                     .padding(.bottom, 12)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .transaction { transaction in
+                transaction.animation = vm.animation
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
-    private var notesContent: some View {
-        // Single ZStack – nothing ever leaves/enters the window.
-        // Only opacity and scale change → feels like expansion, not navigation.
-        ZStack {
-
-            // ── LAYER 0: grid ─────────────────────────────────────────
-            gridView
-                .opacity(selectedNote == nil ? 1 : 0)
-                .scaleEffect(selectedNote == nil ? 1 : 0.94)
-                .allowsHitTesting(selectedNote == nil)
-
-
-
-            // ── LAYER 1: dim ──────────────────────────────────────────
-            Color.black.opacity(selectedNote == nil ? 0 : 0.60)
-                .allowsHitTesting(selectedNote != nil)
-                .onTapGesture {
-                    close()
-                }
-
-            // ── LAYER 2: editor ───────────────────────────────────────
+    private var content: some View {
+        Group {
             if let note = selectedNote {
                 editorView(note: note)
-                    .scaleEffect(1)
-                    .opacity(1)
+                    .transition(
+                        .asymmetric(
+                            insertion: .scale(scale: 0.92).combined(with: .opacity),
+                            removal: .scale(scale: 0.92).combined(with: .opacity)
+                        ))
             } else {
-                // Invisible placeholder so geometry stays stable
-                editorView(note: QuickNoteItem())
-                    .scaleEffect(0.82)
-                    .opacity(0)
-                    .allowsHitTesting(false)
+                gridView
+                    .transition(
+                        .asymmetric(
+                            insertion: .scale(scale: 0.92).combined(with: .opacity),
+                            removal: .scale(scale: 0.92).combined(with: .opacity)
+                        ))
             }
         }
-        .animation(
-            .spring(response: 0.36, dampingFraction: 0.80),
-            value: notes.selectedNoteID
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.spring(response: 0.36, dampingFraction: 0.80), value: selectedNote?.id)
+        .overlay(alignment: .topTrailing) {
+            if selectedNote == nil {
+                HStack(spacing: 8) {
+                    Button {
+                        newNote()
+                    } label: {
+                        Image(systemName: "plus")
+                            .foregroundStyle(.white)
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(Color.white.opacity(0.08)))
+                    }
+                    .buttonStyle(.plain)
+                    .help("New note")
+
+                    Button {
+                        coordinator.toggleNotesExpanded()
+                    } label: {
+                        Image(
+                            systemName: coordinator.isNotesExpanded
+                                ? "arrow.down.right.and.arrow.up.left"
+                                : "arrow.up.left.and.arrow.down.right"
+                        )
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(Color.white.opacity(0.08)))
+                    }
+                    .buttonStyle(.plain)
+                    .help(coordinator.isNotesExpanded ? "Küçült" : "Büyüt")
+                }
+            }
+        }
     }
 
     // ── Grid ──────────────────────────────────────────────────────────
     @ViewBuilder
     private var gridView: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                Spacer()
-
-                Button { newNote() } label: {
-                    Image(systemName: "plus")
-                        .foregroundStyle(.white)
-                        .frame(width: 28, height: 28)
-                        .background(Circle().fill(Color.white.opacity(0.08)))
-                }
-                .buttonStyle(.plain)
-                .help("New note")
-
-                Button { coordinator.toggleNotesExpanded() } label: {
-                    Image(systemName: coordinator.isNotesExpanded
-                        ? "arrow.down.right.and.arrow.up.left"
-                        : "arrow.up.left.and.arrow.down.right")
-                        .foregroundStyle(.white)
-                        .frame(width: 28, height: 28)
-                        .background(Circle().fill(Color.white.opacity(0.08)))
-                }
-                .buttonStyle(.plain)
-                .help(coordinator.isNotesExpanded ? "Küçült" : "Büyüt")
-            }
-            .padding(.top, 0)
-            .padding(.bottom, 8)
-
+        Group {
             if notes.items.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "note.text")
@@ -1122,6 +1173,7 @@ private struct QuickNotesView: View {
                 .scrollIndicators(.never)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // ── Editor ────────────────────────────────────────────────────────
@@ -1129,7 +1181,9 @@ private struct QuickNotesView: View {
     private func editorView(note: QuickNoteItem) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Button { close() } label: {
+                Button {
+                    close()
+                } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(PostItStyle.ink.opacity(0.6))
@@ -1157,7 +1211,8 @@ private struct QuickNotesView: View {
             .padding(.top, 12)
             .padding(.bottom, 4)
 
-            TextField("Title",
+            TextField(
+                "Title",
                 text: Binding(
                     get: { notes.selectedNote?.title ?? note.title },
                     set: { notes.updateSelectedTitle($0) }
@@ -1285,7 +1340,10 @@ private struct PostItChip: View {
                 .padding(.horizontal, 9)
                 .padding(.vertical, 9)
             }
-            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 80, maxHeight: 100, alignment: .topLeading)
+            .frame(
+                minWidth: 0, maxWidth: .infinity, minHeight: 80, maxHeight: 100,
+                alignment: .topLeading
+            )
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(PostItStyle.paper)
@@ -1338,13 +1396,13 @@ private struct PostItChip: View {
 // MARK: - Design tokens
 
 private enum PostItStyle {
-    static let ink    = Color.white.opacity(0.90)
-    static let paper  = LinearGradient(
+    static let ink = Color.white.opacity(0.90)
+    static let paper = LinearGradient(
         colors: [Color(white: 0.13), Color(white: 0.08)],
         startPoint: .topLeading, endPoint: .bottomTrailing
     )
     static let shadow = Color.black.opacity(0.50)
-    static let fold   = LinearGradient(
+    static let fold = LinearGradient(
         colors: [Color.white.opacity(0.18), Color.white.opacity(0.06)],
         startPoint: .topLeading, endPoint: .bottomTrailing
     )

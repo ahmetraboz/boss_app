@@ -24,9 +24,9 @@ struct SettingsView: View {
                 NavigationLink(value: "Media") {
                     Label("Müzik", systemImage: "music.note")
                 }
-//                NavigationLink(value: "Downloads") {
-//                    Label("İndirmeler", systemImage: "square.and.arrow.down")
-//                }
+                //                NavigationLink(value: "Downloads") {
+                //                    Label("İndirmeler", systemImage: "square.and.arrow.down")
+                //                }
                 NavigationLink(value: "Shelf") {
                     Label("Raf", systemImage: "books.vertical")
                 }
@@ -94,7 +94,8 @@ struct SettingsView: View {
 }
 
 struct GeneralSettings: View {
-    @State private var screens: [(uuid: String, name: String)] = NSScreen.screens.compactMap { screen in
+    @State private var screens: [(uuid: String, name: String)] = NSScreen.screens.compactMap {
+        screen in
         guard let uuid = screen.displayUUID else { return nil }
         return (uuid, screen.localizedName)
     }
@@ -111,15 +112,16 @@ struct GeneralSettings: View {
     @Default(.showOnAllDisplays) var showOnAllDisplays
     @Default(.automaticallySwitchDisplay) var automaticallySwitchDisplay
     @Default(.openNotchOnHover) var openNotchOnHover
-    
 
     var body: some View {
         Form {
             Section {
-                Toggle(isOn: Binding(
-                    get: { BossConfig[.menubarIcon] },
-                    set: { BossConfig[.menubarIcon] = $0 }
-                )) {
+                Toggle(
+                    isOn: Binding(
+                        get: { BossConfig[.menubarIcon] },
+                        set: { BossConfig[.menubarIcon] = $0 }
+                    )
+                ) {
                     Text("Menü çubuğu simgesini göster")
                 }
                 .tint(.effectiveAccent)
@@ -143,15 +145,15 @@ struct GeneralSettings: View {
                     }
                 }
                 .disabled(showOnAllDisplays)
-                
+
                 BossConfig.Toggle(key: .automaticallySwitchDisplay) {
                     Text("Ekranları otomatik değiştir")
                 }
-                    .onChange(of: automaticallySwitchDisplay) {
-                        NotificationCenter.default.post(
-                            name: Notification.Name.automaticallySwitchDisplayChanged, object: nil)
-                    }
-                    .disabled(showOnAllDisplays)
+                .onChange(of: automaticallySwitchDisplay) {
+                    NotificationCenter.default.post(
+                        name: Notification.Name.automaticallySwitchDisplayChanged, object: nil)
+                }
+                .disabled(showOnAllDisplays)
             } header: {
                 Text("Sistem Özellikleri")
             }
@@ -373,7 +375,7 @@ struct Media: View {
                     .font(.caption)
                 }
             }
-            
+
             Section {
                 Toggle(
                     "Müzik canlı etkinliğini göster",
@@ -391,12 +393,12 @@ struct Media: View {
             } header: {
                 Text("Müzik Canlı Etkinliği")
             }
-            
+
             Section {
                 MusicSlotConfigurationView()
             } header: {
                 Text("Müzik Kontrolleri")
-            }  footer: {
+            } footer: {
                 Text("Müzik çalarda hangi kontrollerin görüneceğini özelleştirin.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -647,7 +649,6 @@ struct Appearance: View {
     @ObservedObject var coordinator = BossViewCoordinator.shared
     @Default(.mirrorShape) var mirrorShape
 
-
     var body: some View {
         Form {
             Section {
@@ -660,13 +661,11 @@ struct Appearance: View {
                 Text("Genel Görünüm")
             }
 
-
-
             Section {
                 BossConfig.Toggle(key: .showMirror) {
                     Text("Ayna modunu etkinleştir")
                 }
-                    .disabled(!checkVideoInput())
+                .disabled(!checkVideoInput())
                 Picker("Ayna Şekli", selection: $mirrorShape) {
                     Text("Daire")
                         .tag(MirrorShapeEnum.circle)
@@ -729,17 +728,78 @@ struct NotesSettings: View {
 }
 
 struct ScreenshotsSettings: View {
+    @ObservedObject private var screenshots = ScreenshotStateViewModel.shared
+    @State private var showFolderPicker = false
+
     var body: some View {
         Form {
             Section {
-                Text("Ekran görüntüleri özellikleri için ayarlar buraya eklenecek.")
-                    .foregroundStyle(.secondary)
+                HStack {
+                    Text("Klasör")
+                    Spacer()
+                    if let folderURL = screenshots.screenshotFolderURL {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text(folderURL.lastPathComponent)
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                            Text("•")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    Button(action: { showFolderPicker = true }) {
+                        Label("Klasör Seç", systemImage: "folder.badge.plus")
+                    }
+
+                    if screenshots.screenshotFolderURL
+                        != FileManager.default.homeDirectoryForCurrentUser
+                        .appendingPathComponent("Pictures")
+                        .appendingPathComponent("Screenshots")
+                    {
+                        Button(action: {
+                            screenshots.screenshotFolderURL = FileManager.default
+                                .homeDirectoryForCurrentUser
+                                .appendingPathComponent("Pictures")
+                                .appendingPathComponent("Screenshots")
+                        }) {
+                            Label("Varsayılana Dön", systemImage: "arrow.uturn.left")
+                        }
+                    }
+                }
             } header: {
-                Text("Genel")
+                Text("Ekran Görüntüleri Konumu")
+            } footer: {
+                Text(
+                    "Ekran görüntülerinin tarandığı klasörü seçin. Varsayılan olarak ~/Pictures/Screenshots klasörü kullanılır."
+                )
+                .foregroundStyle(.secondary)
+            }
+
+            Section {
+                HStack {
+                    Text("Bulunan")
+                    Spacer()
+                    Text("\(screenshots.items.count) görüntü")
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .accentColor(.effectiveAccent)
         .navigationTitle("Ekran Görüntüleri")
+        .fileImporter(
+            isPresented: $showFolderPicker,
+            allowedContentTypes: [.folder],
+            onCompletion: { result in
+                if case .success(let url) = result {
+                    // Start accessing the security-scoped resource
+                    _ = url.startAccessingSecurityScopedResource()
+                    screenshots.screenshotFolderURL = url
+                }
+            }
+        )
     }
 }
 
@@ -785,4 +845,3 @@ func warningBadge(_ text: String, _ description: String) -> some View {
     }
 }
 
- 
