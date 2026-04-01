@@ -653,15 +653,10 @@ private final class QuickNotesStateViewModel: ObservableObject {
 final class ScreenshotStateViewModel: ObservableObject {
     static let shared = ScreenshotStateViewModel()
 
+    private let screenshotFolderURLKey = "screenshotFolderURL"
+    private let screenshotFolderBookmarkKey = "screenshotFolderBookmark"
+
     @Published private(set) var items: [ScreenshotItem] = []
-    @Published var screenshotFolderURL: URL? {
-        didSet {
-            if let url = screenshotFolderURL {
-                UserDefaults.standard.set(url.absoluteString, forKey: "screenshotFolderURL")
-            }
-            reload()
-        }
-    }
 
     var isEmpty: Bool { items.isEmpty }
 
@@ -669,18 +664,7 @@ final class ScreenshotStateViewModel: ObservableObject {
     private var monitorTask: Task<Void, Never>?
 
     private init() {
-        // Load saved folder URL from UserDefaults
-        if let savedURL = UserDefaults.standard.string(forKey: "screenshotFolderURL"),
-            let url = URL(string: savedURL)
-        {
-            self.screenshotFolderURL = url
-        } else {
-            // Default to ~/Pictures/Screenshots
-            self.screenshotFolderURL = FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent("Pictures")
-                .appendingPathComponent("Screenshots")
-        }
-        reload()
+        // Don't reload here - let startMonitoring() handle it
     }
 
     deinit {
@@ -710,94 +694,184 @@ final class ScreenshotStateViewModel: ObservableObject {
 
     func reload() {
         Task { @MainActor in
-            guard let folderURL = screenshotFolderURL else {
-                self.items = []
-                return
-            }
+            let customFolder = resolveCustomFolderURL()
 
-            // Check if folder exists, if not create it
-            if !FileManager.default.fileExists(atPath: folderURL.path) {
-                try? FileManager.default.createDirectory(
-                    at: folderURL,
-                    withIntermediateDirectories: true
+            let items: [ScreenshotItem]
+
+            if let folderURL = customFolder {
+                let paths = await XPCHelperClient.shared.getScreenshotPaths(
+                    inFolder: folderURL.path,
+                    limit: maxItems
                 )
-            }
-
-            let fileManager = FileManager.default
-            guard
-                let contents = try? fileManager.contentsOfDirectory(
-                    at: folderURL,
-                    includingPropertiesForKeys: [
-                        .creationDateKey,
-                        .contentModificationDateKey,
-                        .fileSizeKey,
-                    ]
-                )
-            else {
-                self.items = []
-                return
-            }
-
-            let items =
-                contents
-                .prefix(maxItems)
-                .compactMap { url -> ScreenshotItem? in
+                var seen = Set<String>()
+                let uniquePaths = paths.filter { path in
+                    if seen.contains(path) {
+                        return false
+                    }
+                    seen.insert(path)
+                    return true
+                }
+                items = uniquePaths.compactMap { urlPath -> ScreenshotItem? in
+                    let url = URL(fileURLWithPath: urlPath)
                     return ScreenshotItem(url: url)
                 }
-                .sorted { $0.createdAt > $1.createdAt }
+            } else {
+                // Use XPCHelperClient for default location
+                let paths = await XPCHelperClient.shared.getScreenshotPaths(limit: maxItems)
+                // Remove duplicates while preserving order
+                var seen = Set<String>()
+                let uniquePaths = paths.filter { path in
+                    if seen.contains(path) {
+                        return false
+                    }
+                    seen.insert(path)
+                    return true
+                }
+                items = uniquePaths.compactMap { urlPath -> ScreenshotItem? in
+                    let url = URL(fileURLWithPath: urlPath)
+                    return ScreenshotItem(url: url)
+                }
+            }
 
             self.items = items
-            print(
-                "📸 Screenshots loaded from \(folderURL.lastPathComponent): \(self.items.count) items found"
-            )
         }
     }
 
     func open(_ item: ScreenshotItem) {
-        guard FileManager.default.fileExists(atPath: item.url.path) else {
-            reload()
-            return
+        Task {
+            let openedByHelper = await XPCHelperClient.shared.openFile(path: item.url.path)
+            guard !openedByHelper else { return }
+
+            await MainActor.run {
+                _ = self.withScopedAccess(for: item) {
+                    guard FileManager.default.fileExists(atPath: item.url.path) else {
+                        return false
+                    }
+                    return NSWorkspace.shared.open(item.url)
+                }
+            }
         }
-        NSWorkspace.shared.open(item.url)
     }
 
     func reveal(_ item: ScreenshotItem) {
-        guard FileManager.default.fileExists(atPath: item.url.path) else {
-            reload()
-            return
+        Task {
+            let revealedByHelper = await XPCHelperClient.shared.revealFile(path: item.url.path)
+            guard !revealedByHelper else { return }
+
+            await MainActor.run {
+                _ = self.withScopedAccess(for: item) {
+                    guard FileManager.default.fileExists(atPath: item.url.path) else {
+                        return false
+                    }
+                    NSWorkspace.shared.activateFileViewerSelecting([item.url])
+                    return true
+                }
+            }
         }
-        NSWorkspace.shared.activateFileViewerSelecting([item.url])
     }
 
     func copy(_ item: ScreenshotItem) {
-        guard FileManager.default.fileExists(atPath: item.url.path) else {
-            reload()
-            return
-        }
+        Task {
+            guard let data = await XPCHelperClient.shared.readFileData(path: item.url.path),
+                let image = NSImage(data: data)
+            else {
+                await MainActor.run {
+                    _ = self.withScopedAccess(for: item) {
+                        guard FileManager.default.fileExists(atPath: item.url.path) else {
+                            return false
+                        }
+                        let pasteboard = NSPasteboard.general
+                        pasteboard.clearContents()
 
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
+                        if let localImage = NSImage(contentsOf: item.url) {
+                            pasteboard.writeObjects([localImage])
+                        } else {
+                            pasteboard.writeObjects([item.url as NSURL])
+                        }
+                        return true
+                    }
+                }
+                return
+            }
 
-        if let image = NSImage(contentsOf: item.url) {
-            pasteboard.writeObjects([image])
-        } else {
-            pasteboard.writeObjects([item.url as NSURL])
+            await MainActor.run {
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.writeObjects([image])
+            }
         }
     }
 
     func delete(_ item: ScreenshotItem) {
-        guard FileManager.default.fileExists(atPath: item.url.path) else {
-            reload()
-            return
+        Task {
+            let deletedByHelper = await XPCHelperClient.shared.trashFile(path: item.url.path)
+            if deletedByHelper {
+                await MainActor.run { self.reload() }
+                return
+            }
+
+            await MainActor.run {
+                let deletedLocally = self.withScopedAccess(for: item) {
+                    guard FileManager.default.fileExists(atPath: item.url.path) else {
+                        return false
+                    }
+                    do {
+                        try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
+                        return true
+                    } catch {
+                        do {
+                            try FileManager.default.removeItem(at: item.url)
+                            return true
+                        } catch {
+                            return false
+                        }
+                    }
+                }
+
+                if deletedLocally {
+                    self.reload()
+                }
+            }
+        }
+    }
+
+    private func resolveCustomFolderURL() -> URL? {
+        if let bookmarkData = UserDefaults.standard.data(forKey: screenshotFolderBookmarkKey) {
+            var isStale = false
+            if let url = try? URL(
+                resolvingBookmarkData: bookmarkData,
+                options: [.withSecurityScope],
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ) {
+                return url
+            }
         }
 
-        do {
-            try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
-        } catch {
-            try? FileManager.default.removeItem(at: item.url)
+        if let data = UserDefaults.standard.data(forKey: screenshotFolderURLKey),
+            let nsurl = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSURL.self, from: data)
+        {
+            return nsurl as URL
         }
 
-        reload()
+        return nil
+    }
+
+    private func withScopedAccess<T>(for item: ScreenshotItem, _ body: () -> T) -> T {
+        guard let folderURL = resolveCustomFolderURL(),
+            item.url.path.hasPrefix(folderURL.path)
+        else {
+            return body()
+        }
+
+        let didAccess = folderURL.startAccessingSecurityScopedResource()
+        defer {
+            if didAccess {
+                folderURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        return body()
     }
 
     private static func loadScreenshotItems(limit: Int) -> [ScreenshotItem] {
@@ -902,7 +976,6 @@ private struct ScreenshotView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .onAppear {
                 print("📸 ScreenshotView appeared")
-                screenshots.reload()
                 screenshots.startMonitoring()
             }
             .onDisappear {

@@ -728,78 +728,109 @@ struct NotesSettings: View {
 }
 
 struct ScreenshotsSettings: View {
-    @ObservedObject private var screenshots = ScreenshotStateViewModel.shared
+    private let screenshotFolderURLKey = "screenshotFolderURL"
+    private let screenshotFolderBookmarkKey = "screenshotFolderBookmark"
+
+    @State private var selectedFolderURL: URL?
     @State private var showFolderPicker = false
 
     var body: some View {
         Form {
             Section {
                 HStack {
-                    Text("Klasör")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Ekran Görüntüleri Klasörü")
+                            .font(.subheadline)
+                        Text(
+                            selectedFolderURL?.lastPathComponent
+                                ?? "Varsayılan (Sistem ekran görüntüsü klasörü)"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
                     Spacer()
-                    if let folderURL = screenshots.screenshotFolderURL {
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text(folderURL.lastPathComponent)
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                            Text("•")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
+                    Button("Seç") {
+                        showFolderPicker = true
                     }
+                    .buttonStyle(.bordered)
                 }
-
-                HStack(spacing: 12) {
-                    Button(action: { showFolderPicker = true }) {
-                        Label("Klasör Seç", systemImage: "folder.badge.plus")
+                if selectedFolderURL != nil {
+                    Button("Varsayılana Sıfırla") {
+                        selectedFolderURL = nil
+                        UserDefaults.standard.removeObject(forKey: screenshotFolderURLKey)
+                        UserDefaults.standard.removeObject(forKey: screenshotFolderBookmarkKey)
+                        ScreenshotStateViewModel.shared.reload()
                     }
-
-                    if screenshots.screenshotFolderURL
-                        != FileManager.default.homeDirectoryForCurrentUser
-                        .appendingPathComponent("Pictures")
-                        .appendingPathComponent("Screenshots")
-                    {
-                        Button(action: {
-                            screenshots.screenshotFolderURL = FileManager.default
-                                .homeDirectoryForCurrentUser
-                                .appendingPathComponent("Pictures")
-                                .appendingPathComponent("Screenshots")
-                        }) {
-                            Label("Varsayılana Dön", systemImage: "arrow.uturn.left")
-                        }
-                    }
+                    .tint(.orange)
                 }
             } header: {
-                Text("Ekran Görüntüleri Konumu")
+                Text("Klasör Seçimi")
             } footer: {
                 Text(
-                    "Ekran görüntülerinin tarandığı klasörü seçin. Varsayılan olarak ~/Pictures/Screenshots klasörü kullanılır."
+                    "Klasör seçmezsen yalnızca macOS ekran görüntüsü klasörü taranır."
                 )
-                .foregroundStyle(.secondary)
-            }
-
-            Section {
-                HStack {
-                    Text("Bulunan")
-                    Spacer()
-                    Text("\(screenshots.items.count) görüntü")
-                        .foregroundStyle(.secondary)
-                }
             }
         }
         .accentColor(.effectiveAccent)
         .navigationTitle("Ekran Görüntüleri")
+        .onAppear {
+            loadSavedFolder()
+        }
         .fileImporter(
             isPresented: $showFolderPicker,
             allowedContentTypes: [.folder],
-            onCompletion: { result in
-                if case .success(let url) = result {
-                    // Start accessing the security-scoped resource
-                    _ = url.startAccessingSecurityScopedResource()
-                    screenshots.screenshotFolderURL = url
-                }
-            }
+            onCompletion: handleFolderSelection
         )
+    }
+
+    private func loadSavedFolder() {
+        if let bookmarkData = UserDefaults.standard.data(forKey: screenshotFolderBookmarkKey) {
+            var isStale = false
+            if let url = try? URL(
+                resolvingBookmarkData: bookmarkData,
+                options: [.withSecurityScope],
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ) {
+                selectedFolderURL = url
+                return
+            }
+        }
+
+        // Backward compatibility with legacy URL storage
+        if let data = UserDefaults.standard.data(forKey: screenshotFolderURLKey),
+            let nsurl = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSURL.self, from: data)
+        {
+            selectedFolderURL = nsurl as URL
+        }
+    }
+
+    private func handleFolderSelection(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            selectedFolderURL = url
+
+            if let bookmarkData = try? url.bookmarkData(
+                options: [.withSecurityScope],
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            ) {
+                UserDefaults.standard.set(bookmarkData, forKey: screenshotFolderBookmarkKey)
+            }
+
+            // Keep legacy value for backward compatibility
+            if let data = try? NSKeyedArchiver.archivedData(
+                withRootObject: url as NSURL,
+                requiringSecureCoding: true
+            ) {
+                UserDefaults.standard.set(data, forKey: screenshotFolderURLKey)
+            }
+
+            // Notify viewmodel to reload
+            ScreenshotStateViewModel.shared.reload()
+        case .failure(let error):
+            print("Folder selection error: \(error)")
+        }
     }
 }
 
@@ -844,4 +875,3 @@ func warningBadge(_ text: String, _ description: String) -> some View {
         }
     }
 }
-

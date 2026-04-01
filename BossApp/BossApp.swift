@@ -166,7 +166,8 @@ final class BossMenuBarController: NSObject {
             return
         }
 
-        let isRightClick = event.type == .rightMouseUp
+        let isRightClick =
+            event.type == .rightMouseUp
             || (event.type == .leftMouseUp && event.modifierFlags.contains(.control))
 
         if isRightClick {
@@ -251,8 +252,8 @@ final class BossMenuBarController: NSObject {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     let menuBarController = BossMenuBarController()
-    var windows: [String: NSWindow] = [:] // UUID -> NSWindow
-    var viewModels: [String: BossViewModel] = [:] // UUID -> BossViewModel
+    var windows: [String: NSWindow] = [:]  // UUID -> NSWindow
+    var viewModels: [String: BossViewModel] = [:]  // UUID -> BossViewModel
     var window: NSWindow?
     let vm: BossViewModel = .init()
     @ObservedObject var coordinator = BossViewCoordinator.shared
@@ -264,7 +265,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var screenUnlockedObserver: Any?
     private var isScreenLocked: Bool = false
     private var windowScreenDidChangeObserver: Any?
-    private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
+    private var dragDetectors: [String: DragDetector] = [:]  // UUID -> DragDetector
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
@@ -299,7 +300,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         isScreenLocked = false
         deactivateOverlayBridgeOnAllWindows()
     }
-    
+
     @MainActor
     private func activateOverlayBridgeOnAllWindows() {
         if BossConfig[.showOnAllDisplays] {
@@ -314,7 +315,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
-    
+
     @MainActor
     private func deactivateOverlayBridgeOnAllWindows() {
         // Delay disabling the overlay bridge to avoid flicker during unlock transition
@@ -337,8 +338,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func cleanupWindows(shouldInvert: Bool = false) {
-        let shouldCleanupMulti = shouldInvert ? !BossConfig[.showOnAllDisplays] : BossConfig[.showOnAllDisplays]
-        
+        let shouldCleanupMulti =
+            shouldInvert ? !BossConfig[.showOnAllDisplays] : BossConfig[.showOnAllDisplays]
+
         if shouldCleanupMulti {
             windows.values.forEach { window in
                 window.close()
@@ -374,7 +376,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 setupDragDetectorForScreen(screen)
             }
         } else {
-            let preferredScreen: NSScreen? = window?.screen
+            let preferredScreen: NSScreen? =
+                window?.screen
                 ?? NSScreen.screen(withUUID: coordinator.selectedScreenUUID)
                 ?? NSScreen.main
 
@@ -386,11 +389,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupDragDetectorForScreen(_ screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
-        
+
         let screenFrame = screen.frame
         let notchHeight = openNotchSize.height
         let notchWidth = openNotchSize.width
-        
+
         // Create notch region at the top-center of the screen where an open notch would occupy
         let notchRegion = CGRect(
             x: screenFrame.midX - notchWidth / 2,
@@ -398,37 +401,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             width: notchWidth,
             height: notchHeight
         )
-        
+
         let detector = DragDetector(notchRegion: notchRegion)
-        
+
         detector.onDragEntersNotchRegion = { [weak self] in
             Task { @MainActor in
                 self?.handleDragEntersNotchRegion(onScreen: screen)
             }
         }
-        
+
         dragDetectors[uuid] = detector
         detector.startMonitoring()
     }
 
     private func handleDragEntersNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
-        
+
         if BossConfig[.showOnAllDisplays], let viewModel = viewModels[uuid] {
             viewModel.open()
             coordinator.currentView = .shelf
-        } else if !BossConfig[.showOnAllDisplays], let windowScreen = window?.screen, screen == windowScreen {
+        } else if !BossConfig[.showOnAllDisplays], let windowScreen = window?.screen,
+            screen == windowScreen
+        {
             vm.open()
             coordinator.currentView = .shelf
         }
     }
 
-    private func createBossAppWindow(for screen: NSScreen, with viewModel: BossViewModel) -> NSWindow {
+    private func createBossAppWindow(for screen: NSScreen, with viewModel: BossViewModel)
+        -> NSWindow
+    {
         let rect = NSRect(x: 0, y: 0, width: windowSize.width, height: windowSize.height)
-        let styleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel, .utilityWindow, .hudWindow]
-        
-        let window = BossOverlayWindow(contentRect: rect, styleMask: styleMask, backing: .buffered, defer: false)
-        
+        let styleMask: NSWindow.StyleMask = [
+            .borderless, .nonactivatingPanel, .utilityWindow, .hudWindow,
+        ]
+
+        let window = BossOverlayWindow(
+            contentRect: rect, styleMask: styleMask, backing: .buffered, defer: false)
+
         // Apply the overlay bridge only when the screen is locked
         if isScreenLocked {
             window.activateOverlayBridge()
@@ -448,10 +458,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowScreenDidChangeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didChangeScreenNotification,
             object: window,
-            queue: .main) { [weak self] _ in
-                Task { @MainActor in
-                    self?.setupDragDetectors()
-                }
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.setupDragDetectors()
+            }
         }
         return window
     }
@@ -496,6 +507,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Calendar feature is intentionally disabled app-wide.
+        BossConfig[.showCalendar] = false
+
         ClipboardStateViewModel.shared.startMonitoring()
         ScreenshotStateViewModel.shared.startMonitoring()
         menuBarController.start()
@@ -554,7 +568,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             guard let self = self, let window = self.window else { return }
             Task { @MainActor in
-                window.alphaValue = self.coordinator.selectedScreenUUID == self.coordinator.preferredScreenUUID ? 1 : 0
+                window.alphaValue =
+                    self.coordinator.selectedScreenUUID == self.coordinator.preferredScreenUUID
+                    ? 1 : 0
             }
         }
 
@@ -580,18 +596,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Use closure-based observers for DistributedNotificationCenter and keep tokens for removal
         screenLockedObserver = DistributedNotificationCenter.default().addObserver(
             forName: NSNotification.Name(rawValue: "com.apple.screenIsLocked"),
-            object: nil, queue: .main) { [weak self] notification in
-                Task { @MainActor in
-                    self?.onScreenLocked(notification)
-                }
+            object: nil, queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                self?.onScreenLocked(notification)
+            }
         }
 
         screenUnlockedObserver = DistributedNotificationCenter.default().addObserver(
             forName: NSNotification.Name(rawValue: "com.apple.screenIsUnlocked"),
-            object: nil, queue: .main) { [weak self] notification in
-                Task { @MainActor in
-                    self?.onScreenUnlocked(notification)
-                }
+            object: nil, queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                self?.onScreenUnlocked(notification)
+            }
         }
 
         if !BossConfig[.showOnAllDisplays] {
@@ -669,7 +687,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Create or update windows for all screens
             for screen in NSScreen.screens {
                 guard let uuid = screen.displayUUID else { continue }
-                
+
                 if windows[uuid] == nil {
                     let viewModel = BossViewModel(screenUUID: uuid)
                     let window = createBossAppWindow(for: screen, with: viewModel)
@@ -689,11 +707,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let selectedScreen: NSScreen
 
-            if let preferredScreen = NSScreen.screen(withUUID: coordinator.preferredScreenUUID ?? "") {
+            if let preferredScreen = NSScreen.screen(
+                withUUID: coordinator.preferredScreenUUID ?? "")
+            {
                 coordinator.selectedScreenUUID = coordinator.preferredScreenUUID ?? ""
                 selectedScreen = preferredScreen
             } else if BossConfig[.automaticallySwitchDisplay], let mainScreen = NSScreen.main,
-                      let mainUUID = mainScreen.displayUUID {
+                let mainUUID = mainScreen.displayUUID
+            {
                 coordinator.selectedScreenUUID = mainUUID
                 selectedScreen = mainScreen
             } else {
@@ -725,8 +746,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if BossConfig[.showOnAllDisplays] {
             for screen in NSScreen.screens {
                 guard let uuid = screen.displayUUID,
-                      let window = windows[uuid],
-                      let viewModel = viewModels[uuid]
+                    let window = windows[uuid],
+                    let viewModel = viewModels[uuid]
                 else {
                     continue
                 }
@@ -737,7 +758,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 positionWindow(window, on: screen, with: viewModel, animate: true)
             }
         } else if let window = window {
-            let screen = window.screen ?? NSScreen.screen(withUUID: vm.screenUUID ?? "") ?? NSScreen.main
+            let screen =
+                window.screen ?? NSScreen.screen(withUUID: vm.screenUUID ?? "") ?? NSScreen.main
 
             guard let screen else { return }
 
@@ -765,7 +787,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     step: step,
                     onFinish: {
                         window.orderOut(nil)
-//                        NSApp.setActivationPolicy(.accessory)
+                        //                        NSApp.setActivationPolicy(.accessory)
                         window.close()
                         NSApp.deactivate()
                     },
@@ -780,11 +802,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onboardingWindowController = NSWindowController(window: window)
         }
 
-//        NSApp.setActivationPolicy(.regular)
+        //        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         onboardingWindowController?.window?.makeKeyAndOrderFront(nil)
         onboardingWindowController?.window?.orderFrontRegardless()
     }
+
 }
 
 extension Notification.Name {
@@ -794,7 +817,8 @@ extension Notification.Name {
     static let screenshotsExpansionChanged = Notification.Name("ScreenshotsExpansionChanged")
     static let notesExpansionChanged = Notification.Name("NotesExpansionChanged")
     static let showOnAllDisplaysChanged = Notification.Name("showOnAllDisplaysChanged")
-    static let automaticallySwitchDisplayChanged = Notification.Name("automaticallySwitchDisplayChanged")
+    static let automaticallySwitchDisplayChanged = Notification.Name(
+        "automaticallySwitchDisplayChanged")
     static let expandedDragDetectionChanged = Notification.Name("expandedDragDetectionChanged")
 }
 

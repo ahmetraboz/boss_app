@@ -167,4 +167,80 @@ final class XPCHelperClient: NSObject, @unchecked Sendable {
             return []
         }
     }
+
+    nonisolated func getScreenshotPaths(inFolder path: String, limit: Int = 100) async -> [String] {
+        do {
+            let service = await MainActor.run {
+                ensureRemoteService()
+            }
+            return try await service.withContinuation { service, continuation in
+                service.getScreenshotPaths(inFolder: path, limit: limit) { paths in
+                    continuation.resume(returning: paths)
+                }
+            }
+        } catch {
+            return []
+        }
+    }
+
+    nonisolated func readFileData(path: String) async -> Data? {
+        do {
+            let service = await MainActor.run {
+                ensureRemoteService()
+            }
+            let result: NSData? = try await service.withContinuation { service, continuation in
+                service.readFileData(atPath: path) { data in
+                    continuation.resume(returning: data)
+                }
+            }
+            return result as Data?
+        } catch {
+            return nil
+        }
+    }
+
+    nonisolated func trashFile(path: String) async -> Bool {
+        do {
+            let service = await MainActor.run {
+                ensureRemoteService()
+            }
+            return try await service.withContinuation { service, continuation in
+                service.trashFile(atPath: path) { success in
+                    continuation.resume(returning: success)
+                }
+            }
+        } catch {
+            return false
+        }
+    }
+
+    nonisolated func openFile(path: String) async -> Bool {
+        do {
+            let service = await MainActor.run {
+                ensureRemoteService()
+            }
+            return try await service.withContinuation { service, continuation in
+                service.openFile(atPath: path) { success in
+                    continuation.resume(returning: success)
+                }
+            }
+        } catch {
+            return false
+        }
+    }
+
+    nonisolated func revealFile(path: String) async -> Bool {
+        do {
+            let service = await MainActor.run {
+                ensureRemoteService()
+            }
+            return try await service.withContinuation { service, continuation in
+                service.revealFile(atPath: path) { success in
+                    continuation.resume(returning: success)
+                }
+            }
+        } catch {
+            return false
+        }
+    }
 }

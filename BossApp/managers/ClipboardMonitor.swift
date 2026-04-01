@@ -53,7 +53,7 @@ final class ClipboardMonitor {
             }
 
             if richItem.types.contains(.string) == false,
-               let plainText = item.plainText
+                let plainText = item.plainText
             {
                 richItem.setString(plainText, forType: .string)
             }
@@ -92,7 +92,8 @@ final class ClipboardMonitor {
 
     private func makeClipboardItem() -> ClipboardItem? {
         guard let pasteboardItems = pasteboard.pasteboardItems,
-              !pasteboardItems.isEmpty else {
+            !pasteboardItems.isEmpty
+        else {
             return nil
         }
 
@@ -131,7 +132,8 @@ final class ClipboardMonitor {
         type: NSPasteboard.PasteboardType
     ) -> ClipboardRepresentation? {
         if type == .fileURL,
-           let string = item.string(forType: type) {
+            let string = item.string(forType: type)
+        {
             return ClipboardRepresentation(
                 typeIdentifier: type.rawValue,
                 data: Data(string.utf8)
@@ -139,7 +141,8 @@ final class ClipboardMonitor {
         }
 
         if isPlainTextType(type),
-           let string = item.string(forType: type) {
+            let string = item.string(forType: type)
+        {
             return ClipboardRepresentation(
                 typeIdentifier: NSPasteboard.PasteboardType.string.rawValue,
                 data: Data(string.utf8)

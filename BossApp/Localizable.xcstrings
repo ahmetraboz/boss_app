@@ -142,7 +142,7 @@
     "Ekran Görüntüleri" : {
 
     },
-    "Ekran görüntüleri özellikleri için ayarlar buraya eklenecek." : {
+    "Ekran Görüntüleri Klasörü" : {
 
     },
     "Ekranları otomatik değiştir" : {
@@ -191,6 +191,12 @@
 
     },
     "Kare" : {
+
+    },
+    "Klasör Seçimi" : {
+
+    },
+    "Klasör seçmezsen yalnızca macOS ekran görüntüsü klasörü taranır." : {
 
     },
     "Küçült" : {
@@ -295,6 +301,9 @@
     "Search" : {
 
     },
+    "Seç" : {
+
+    },
     "Sekmeleri her zaman göster" : {
 
     },
@@ -341,6 +350,9 @@
 
     },
     "Uygulamadan Çık" : {
+
+    },
+    "Varsayılana Sıfırla" : {
 
     },
     "Versiyon" : {

@@ -4,6 +4,7 @@
 //
 //
 
+import AppKit
 import CoreGraphics
 import Foundation
 import IOKit
@@ -177,67 +178,68 @@ class BossAppHelper: NSObject, BossAppHelperProtocol {
         let defaults = UserDefaults(suiteName: "com.apple.screencapture")
         let rawPath = defaults?.string(forKey: "location")
 
-        var pathsToCheck: [String] = []
-
+        let systemScreenshotPath: String
         if let rawPath, !rawPath.isEmpty {
-            pathsToCheck.append(NSString(string: rawPath).expandingTildeInPath)
+            systemScreenshotPath = NSString(string: rawPath).expandingTildeInPath
+        } else {
+            systemScreenshotPath =
+                fileManager.homeDirectoryForCurrentUser
+                .appendingPathComponent("Desktop")
+                .path
         }
-
-        let homeDir = fileManager.homeDirectoryForCurrentUser.path
-        pathsToCheck.append(homeDir + "/Desktop")
-        pathsToCheck.append(homeDir + "/Documents")
-        pathsToCheck.append(homeDir + "/Belgeler")  // Turkish
-        pathsToCheck.append(homeDir + "/Pictures")
-        pathsToCheck.append(homeDir + "/Downloads")
 
         var allScreenshots: [(url: URL, date: Date)] = []
 
-        for path in pathsToCheck {
-            let dirURL = URL(fileURLWithPath: path, isDirectory: true)
-            var isDirectory: ObjCBool = false
+        let dirURL = URL(fileURLWithPath: systemScreenshotPath, isDirectory: true)
+        var isDirectory: ObjCBool = false
 
-            guard fileManager.fileExists(atPath: dirURL.path, isDirectory: &isDirectory),
-                isDirectory.boolValue
-            else { continue }
+        guard fileManager.fileExists(atPath: dirURL.path, isDirectory: &isDirectory),
+            isDirectory.boolValue
+        else {
+            reply([])
+            return
+        }
 
-            let keys: Set<URLResourceKey> = [
-                .creationDateKey, .contentModificationDateKey, .isRegularFileKey,
-            ]
-            guard
-                let fileURLs = try? fileManager.contentsOfDirectory(
-                    at: dirURL,
-                    includingPropertiesForKeys: Array(keys),
-                    options: [.skipsHiddenFiles]
-                )
-            else { continue }
+        let keys: Set<URLResourceKey> = [
+            .creationDateKey, .contentModificationDateKey, .isRegularFileKey,
+        ]
+        guard
+            let fileURLs = try? fileManager.contentsOfDirectory(
+                at: dirURL,
+                includingPropertiesForKeys: Array(keys),
+                options: [.skipsHiddenFiles]
+            )
+        else {
+            reply([])
+            return
+        }
 
-            for fileURL in fileURLs {
-                let ext = fileURL.pathExtension.lowercased()
-                guard ["png", "jpg", "jpeg", "tiff", "heic", "gif", "webp"].contains(ext) else {
-                    continue
-                }
-
-                let fileName = fileURL.deletingPathExtension().lastPathComponent.lowercased()
-                let normalized = fileName.folding(
-                    options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-
-                let screenshotPrefixes = [
-                    "screen shot", "screenshot", "ekran resmi", "ekran goruntusu",
-                    "ekran goruntuleri", "ekran görüntüsü", "ekran görüntüleri",
-                ]
-
-                guard screenshotPrefixes.contains(where: { normalized.hasPrefix($0) }) else {
-                    continue
-                }
-
-                let resourceValues = try? fileURL.resourceValues(forKeys: keys)
-                guard resourceValues?.isRegularFile == true else { continue }
-
-                let createdAt =
-                    resourceValues?.creationDate ?? resourceValues?.contentModificationDate
-                    ?? .distantPast
-                allScreenshots.append((fileURL, createdAt))
+        for fileURL in fileURLs {
+            let ext = fileURL.pathExtension.lowercased()
+            guard ["png", "jpg", "jpeg", "tiff", "heic", "gif", "webp"].contains(ext) else {
+                continue
             }
+
+            let fileName = fileURL.deletingPathExtension().lastPathComponent.lowercased()
+            let normalized = fileName.folding(
+                options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+
+            let screenshotPrefixes = [
+                "screen shot", "screenshot", "ekran resmi", "ekran goruntusu",
+                "ekran goruntuleri", "ekran görüntüsü", "ekran görüntüleri",
+            ]
+
+            guard screenshotPrefixes.contains(where: { normalized.hasPrefix($0) }) else {
+                continue
+            }
+
+            let resourceValues = try? fileURL.resourceValues(forKeys: keys)
+            guard resourceValues?.isRegularFile == true else { continue }
+
+            let createdAt =
+                resourceValues?.creationDate ?? resourceValues?.contentModificationDate
+                ?? .distantPast
+            allScreenshots.append((fileURL, createdAt))
         }
 
         let sortedPaths =
@@ -247,6 +249,129 @@ class BossAppHelper: NSObject, BossAppHelperProtocol {
             .map { $0.url.path }
 
         reply(Array(sortedPaths))
+    }
+
+    @objc func getScreenshotPaths(
+        inFolder path: String, limit: Int, with reply: @escaping ([String]) -> Void
+    ) {
+        let fileManager = FileManager.default
+        let dirURL = URL(fileURLWithPath: path, isDirectory: true)
+        var isDirectory: ObjCBool = false
+
+        guard fileManager.fileExists(atPath: dirURL.path, isDirectory: &isDirectory),
+            isDirectory.boolValue
+        else {
+            reply([])
+            return
+        }
+
+        let keys: Set<URLResourceKey> = [
+            .creationDateKey, .contentModificationDateKey, .isRegularFileKey,
+        ]
+        guard
+            let fileURLs = try? fileManager.contentsOfDirectory(
+                at: dirURL,
+                includingPropertiesForKeys: Array(keys),
+                options: [.skipsHiddenFiles]
+            )
+        else {
+            reply([])
+            return
+        }
+
+        var screenshots: [(url: URL, date: Date)] = []
+
+        for fileURL in fileURLs {
+            let ext = fileURL.pathExtension.lowercased()
+            guard ["png", "jpg", "jpeg", "tiff", "heic", "gif", "webp"].contains(ext) else {
+                continue
+            }
+
+            let fileName = fileURL.deletingPathExtension().lastPathComponent.lowercased()
+            let normalized = fileName.folding(
+                options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+
+            let screenshotPrefixes = [
+                "screen shot", "screenshot", "ekran resmi", "ekran goruntusu",
+                "ekran goruntuleri", "ekran görüntüsü", "ekran görüntüleri",
+            ]
+
+            guard screenshotPrefixes.contains(where: { normalized.hasPrefix($0) }) else {
+                continue
+            }
+
+            let resourceValues = try? fileURL.resourceValues(forKeys: keys)
+            guard resourceValues?.isRegularFile == true else { continue }
+
+            let createdAt =
+                resourceValues?.creationDate ?? resourceValues?.contentModificationDate
+                ?? .distantPast
+            screenshots.append((fileURL, createdAt))
+        }
+
+        let sortedPaths =
+            screenshots
+            .sorted { $0.date > $1.date }
+            .prefix(limit)
+            .map { $0.url.path }
+
+        reply(Array(sortedPaths))
+    }
+
+    @objc func readFileData(atPath path: String, with reply: @escaping (NSData?) -> Void) {
+        let url = URL(fileURLWithPath: path)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            reply(nil)
+            return
+        }
+
+        guard let data = try? Data(contentsOf: url) else {
+            reply(nil)
+            return
+        }
+
+        reply(data as NSData)
+    }
+
+    @objc func trashFile(atPath path: String, with reply: @escaping (Bool) -> Void) {
+        let url = URL(fileURLWithPath: path)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            reply(false)
+            return
+        }
+
+        do {
+            try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+            reply(true)
+        } catch {
+            do {
+                try FileManager.default.removeItem(at: url)
+                reply(true)
+            } catch {
+                reply(false)
+            }
+        }
+    }
+
+    @objc func openFile(atPath path: String, with reply: @escaping (Bool) -> Void) {
+        let url = URL(fileURLWithPath: path)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            reply(false)
+            return
+        }
+
+        reply(NSWorkspace.shared.open(url))
+    }
+
+    @objc func revealFile(atPath path: String, with reply: @escaping (Bool) -> Void) {
+        let url = URL(fileURLWithPath: path)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            reply(false)
+            return
+        }
+
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+        reply(true)
     }
 
     // MARK: - Helper handle for private framework
